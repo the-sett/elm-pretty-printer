@@ -32,111 +32,103 @@ type Doc
     | Char Char
     | Text Int String
     | Line
-    | FlatAlt (Lazy Doc) (Lazy Doc)
-    | Cat (Lazy Doc) (Lazy Doc)
-    | Nest Int (Lazy Doc)
-    | Union (Lazy Doc) (Lazy Doc)
-    | Column (Int -> Lazy Doc)
-    | Columns (Maybe Int -> Lazy Doc)
-    | Nesting (Int -> Lazy Doc)
+    | FlatAlt Doc Doc
+    | Cat Doc Doc
+    | Nest Int Doc
+    | Union Doc Doc
+    | Column (Int -> Doc)
+    | Columns (Maybe Int -> Doc)
+    | Nesting (Int -> Doc)
 
 
 infixr 6 <>
-(<>) : Doc -> Doc -> Lazy Doc
-(<>) left right =
-    Cat (lazify left) (lazify right)
-        |> lazify
+(<>) : Doc -> Doc -> Doc
+(<>) =
+    Cat
 
 
 infixr 6 <+>
-(<+>) : Doc -> Doc -> Lazy Doc
+(<+>) : Doc -> Doc -> Doc
 (<+>) left right =
-    Lazy.andThen (flip (<>) right) space
-        |> Lazy.andThen ((<>) left)
+    left <> space <> right
 
 
 infixr 5 <$$>
-(<$$>) : Doc -> Doc -> Lazy Doc
+(<$$>) : Doc -> Doc -> Doc
 (<$$>) left right =
-    (linebreak <> right)
-        |> Lazy.andThen ((<>) left)
+    left <> linebreak <> right
 
 
 infixr 5 <$>
-(<$>) : Doc -> Doc -> Lazy Doc
+(<$>) : Doc -> Doc -> Doc
 (<$>) left right =
-    Lazy.andThen (flip (<>) right) space
-        |> Lazy.andThen ((<>) left)
+    left <> space <> right
 
 
 infixr 5 </>
-(</>) : Doc -> Doc -> Lazy Doc
+(</>) : Doc -> Doc -> Doc
 (</>) doc1 doc2 =
-    Lazy.andThen (flip (<>) doc2) softline
-        |> Lazy.andThen ((<>) doc1)
+    doc1 <> softline <> doc2
 
 
-cat : List Doc -> Lazy Doc
+cat : List Doc -> Doc
 cat =
-    Lazy.andThen group << vcat
+    group << vcat
 
 
-enclose : Doc -> Doc -> Doc -> Lazy Doc
+enclose : Doc -> Doc -> Doc -> Doc
 enclose left right middle =
-    (middle <> right)
-        |> Lazy.andThen ((<>) left)
+    left <> middle <> right
 
 
-colon : Lazy Doc
+colon : Doc
 colon =
-    char ':'
+    Char ':'
 
 
-comma : Lazy Doc
+comma : Doc
 comma =
-    char ','
+    Char ','
 
 
-equals : Lazy Doc
+equals : Doc
 equals =
-    char '='
+    Char '='
 
 
-lbrace : Lazy Doc
+lbrace : Doc
 lbrace =
-    char '{'
+    Char '{'
 
 
-rbrace : Lazy Doc
+rbrace : Doc
 rbrace =
-    char '}'
+    Char '}'
 
 
-lparen : Lazy Doc
+lparen : Doc
 lparen =
-    char '('
+    Char '('
 
 
-rparen : Lazy Doc
+rparen : Doc
 rparen =
-    char ')'
+    Char ')'
 
 
-parens : Doc -> Lazy Doc
-parens doc =
-    Lazy.map2 enclose lparen rparen
-        |> Lazy.andThen ((|>) doc)
+parens : Doc -> Doc
+parens =
+    enclose lparen rparen
 
 
-empty : Lazy Doc
+empty : Doc
 empty =
-    lazify Empty
+    Empty
 
 
-group : Doc -> Lazy Doc
+group : Doc -> Doc
 group doc =
-    Union (flatten doc) (lazify doc)
-        |> lazify
+    Union (flatten doc) doc
 
 
 
@@ -145,80 +137,75 @@ group doc =
 --     Color Yellow
 
 
-flatten : Doc -> Lazy Doc
+flatten : Doc -> Doc
 flatten doc =
     case doc of
         FlatAlt doc1 doc2 ->
             doc2
 
         Cat doc1 doc2 ->
-            Cat (Lazy.andThen flatten doc1) (Lazy.andThen flatten doc2)
-                |> lazify
+            Cat (flatten doc1) (flatten doc2)
 
         Nest n doc ->
-            Nest n (Lazy.andThen flatten doc)
-                |> lazify
+            Nest n (flatten doc)
 
         Line ->
-            lazify Fail
+            Fail
 
         Union doc1 doc2 ->
-            Lazy.andThen flatten doc1
+            flatten doc1
 
         Column f ->
-            Column (Lazy.andThen flatten << f)
-                |> lazify
+            Column (flatten << f)
 
         Columns f ->
-            Columns (Lazy.andThen flatten << f)
-                |> lazify
+            Columns (flatten << f)
 
         Nesting f ->
-            Nesting (Lazy.andThen flatten << f)
-                |> lazify
+            Nesting (flatten << f)
 
         other ->
-            lazify other
+            other
 
 
-sep : List Doc -> Lazy Doc
+sep : List Doc -> Doc
 sep =
-    Lazy.andThen group << vsep
+    group << vsep
 
 
-vsep : List Doc -> Lazy Doc
+vsep : List Doc -> Doc
 vsep =
     fold (<$>)
 
 
-vcat : List Doc -> Lazy Doc
+vcat : List Doc -> Doc
 vcat =
     fold (<$$>)
 
 
-hsep : List Doc -> Lazy Doc
+hsep : List Doc -> Doc
 hsep =
     fold (<+>)
 
 
-fillSep : List Doc -> Lazy Doc
+fillSep : List Doc -> Doc
 fillSep =
     fold (</>)
 
 
-fold : (Doc -> Doc -> Lazy Doc) -> List Doc -> Lazy Doc
+fold : (Doc -> Doc -> Doc) -> List Doc -> Doc
 fold fn docs =
-    let
-        f : Doc -> Lazy Doc -> Lazy Doc
-        f elt acc =
-            Lazy.andThen (fn elt) acc
-    in
-    List.foldr f (lazify Empty) docs
+    case List.head docs of
+        Nothing ->
+            Empty
+
+        Just head ->
+            List.foldr fn head (List.drop 1 docs)
 
 
-space : Lazy Doc
+space : Doc
 space =
-    char ' '
+    Char ' '
 
 
 spaces : Int -> String
@@ -229,7 +216,7 @@ spaces n =
         String.repeat n " "
 
 
-char : Char -> Lazy Doc
+char : Char -> Doc
 char input =
     case input of
         '\n' ->
@@ -237,22 +224,21 @@ char input =
 
         _ ->
             Char input
-                |> lazify
 
 
-column : (Int -> Lazy Doc) -> Lazy Doc
+column : (Int -> Doc) -> Doc
 column fn =
-    lazify (Column fn)
+    Column fn
 
 
-nesting : (Int -> Lazy Doc) -> Doc
+nesting : (Int -> Doc) -> Doc
 nesting fn =
     Nesting fn
 
 
 nest : Int -> Doc -> Doc
 nest n doc =
-    Nest n (lazify doc)
+    Nest n doc
 
 
 text : String -> Doc
@@ -265,56 +251,54 @@ text str =
             Text (String.length s) s
 
 
-line : Lazy Doc
+line : Doc
 line =
-    FlatAlt (lazify Line) space
-        |> lazify
+    FlatAlt Line space
 
 
-softline : Lazy Doc
+softline : Doc
 softline =
-    Lazy.andThen group line
+    group line
 
 
-softbreak : Lazy Doc
+softbreak : Doc
 softbreak =
     group linebreak
 
 
 linebreak : Doc
 linebreak =
-    FlatAlt hardline empty
+    FlatAlt Line empty
 
 
-hardline : Lazy Doc
+hardline : Doc
 hardline =
-    lazify Line
+    Line
 
 
 
 -- ALIGNMENT
 
 
-indent : Int -> Doc -> Lazy Doc
+indent : Int -> Doc -> Doc
 indent n doc =
-    --hang n (text (spaces n) <> doc)
-    (text (spaces n) <> doc)
-        |> Lazy.andThen (hang n)
+    hang n (text (spaces n) <> doc)
 
 
-hang : Int -> Doc -> Lazy Doc
+hang : Int -> Doc -> Doc
 hang n doc =
     align (nest n doc)
 
 
-align : Doc -> Lazy Doc
+align : Doc -> Doc
 align doc =
     column
         (\k ->
-            lazify (nesting (\i -> lazify (nest (k - i) doc)))
+            nesting (\i -> nest (k - i) doc)
         )
 
 
-lazify : a -> Lazy a
-lazify elt =
-    Lazy.lazy (\_ -> elt)
+
+-- lazify : a -> Lazy a
+-- lazify elt =
+--     Lazy.lazy (\_ -> elt)

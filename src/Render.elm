@@ -19,15 +19,17 @@ type SimpleDoc
 
 type Docs
     = Nil
-    | Cons Int (Lazy Doc) Docs
+    | Cons Int Doc Docs
 
 
-show : Lazy Doc -> String
+show : Doc -> String
 show doc =
-    display (renderPretty 0.4 80 doc)
+    -- trim to remove whitespaces or newlines hanging around at end
+    -- may cause issues as functionality grows
+    (String.trimRight << display) (renderPretty 0.4 80 doc)
 
 
-renderPretty : Float -> Int -> Lazy Doc -> SimpleDoc
+renderPretty : Float -> Int -> Doc -> SimpleDoc
 renderPretty =
     renderFits fits1
 
@@ -36,7 +38,7 @@ renderFits :
     (Int -> Int -> Int -> SimpleDoc -> Bool)
     -> Float
     -> Int
-    -> Lazy Doc
+    -> Doc
     -> SimpleDoc
 renderFits doesItFit rfrac pageWidth doc =
     let
@@ -54,7 +56,7 @@ renderFits doesItFit rfrac pageWidth doc =
                         bestTypical indent_ currCol_ documents_ =
                             best indent_ currCol_ mb_fc mb_bc mb_in mb_it mb_un documents_
                     in
-                    case Lazy.force document of
+                    case document of
                         Fail ->
                             SFail
 
@@ -140,12 +142,10 @@ display simpleDoc =
             ""
 
         SChar char sDoc ->
-            display sDoc
-                |> String.cons char
+            String.cons char (display sDoc)
 
         SText _ content sDoc ->
-            display sDoc
-                |> String.append content
+            String.append content (display sDoc)
 
         SLine indents sDoc ->
             display sDoc
