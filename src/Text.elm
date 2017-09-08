@@ -1,7 +1,5 @@
 module Text exposing (..)
 
-import Lazy as Lazy exposing (Lazy)
-
 
 type Color
     = Black
@@ -62,7 +60,7 @@ infixr 5 <$$>
 infixr 5 <$>
 (<$>) : Doc -> Doc -> Doc
 (<$>) left right =
-    left <> space <> right
+    left <> line <> right
 
 
 infixr 5 </>
@@ -289,13 +287,14 @@ hang n doc =
 align : Doc -> Doc
 align doc =
     column
-        (\k ->
-            nesting (\i -> nest (k - i) doc)
+        (\currentColumn ->
+            nesting (\indentLvl -> nest (currentColumn - indentLvl) doc)
         )
 
 
 foldr1 : (a -> a -> a) -> List a -> Maybe a
 foldr1 f xs =
+    -- https://github.com/haskell-suite/base/blob/master/Data/Foldable.hs#L144
     let
         folding x m =
             m
