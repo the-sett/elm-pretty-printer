@@ -195,12 +195,8 @@ fillSep =
 
 fold : (Doc -> Doc -> Doc) -> List Doc -> Doc
 fold fn docs =
-    case List.head docs of
-        Nothing ->
-            Empty
-
-        Just head ->
-            List.foldr fn head (List.drop 1 docs)
+    foldr1 fn docs
+        |> Maybe.withDefault Empty
 
 
 space : Doc
@@ -298,7 +294,13 @@ align doc =
         )
 
 
-
--- lazify : a -> Lazy a
--- lazify elt =
---     Lazy.lazy (\_ -> elt)
+foldr1 : (a -> a -> a) -> List a -> Maybe a
+foldr1 f xs =
+    let
+        folding x m =
+            m
+                |> Maybe.map (f x)
+                |> Maybe.withDefault x
+                |> Just
+    in
+    List.foldr folding Nothing xs

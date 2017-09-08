@@ -26,7 +26,7 @@ show : Doc -> String
 show doc =
     -- trim to remove whitespaces or newlines hanging around at end
     -- may cause issues as functionality grows
-    (String.trimRight << display) (renderPretty 0.4 80 doc)
+    display (renderPretty 0.4 80 doc)
 
 
 renderPretty : Float -> Int -> Doc -> SimpleDoc
@@ -46,7 +46,11 @@ renderFits doesItFit rfrac pageWidth doc =
         ribbonWidth =
             32
 
-        best indent currCol mb_fc mb_bc mb_in mb_it mb_un docs =
+        best indent currCol docs =
+            -- let
+            --     _ =
+            --         Debug.log (showTheDoc 0 currCol doc) ()
+            -- in
             case docs of
                 Nil ->
                     SEmpty
@@ -54,7 +58,7 @@ renderFits doesItFit rfrac pageWidth doc =
                 Cons n document documents ->
                     let
                         bestTypical indent_ currCol_ documents_ =
-                            best indent_ currCol_ mb_fc mb_bc mb_in mb_it mb_un documents_
+                            best indent_ currCol_ documents_
                     in
                     case document of
                         Fail ->
@@ -107,7 +111,7 @@ renderFits doesItFit rfrac pageWidth doc =
             else
                 doc2
     in
-    best 0 0 Nothing Nothing Nothing Nothing Nothing (Cons 0 doc Nil)
+    best 0 0 (Cons 0 doc Nil)
 
 
 fits1 : Int -> Int -> Int -> SimpleDoc -> Bool
@@ -142,10 +146,12 @@ display simpleDoc =
             ""
 
         SChar char sDoc ->
-            String.cons char (display sDoc)
+            display sDoc
+                |> String.cons char
 
         SText _ content sDoc ->
-            String.append content (display sDoc)
+            display sDoc
+                |> String.append content
 
         SLine indents sDoc ->
             display sDoc
@@ -158,3 +164,43 @@ indentation n =
         ""
     else
         String.repeat n " "
+
+
+showTheDoc : Int -> Int -> Doc -> String
+showTheDoc n curr doc =
+    case doc of
+        FlatAlt x y ->
+            "FlatAlt\n" ++ String.repeat n " " ++ showTheDoc (n + 1) curr x ++ String.repeat n " " ++ showTheDoc (n + 1) curr y
+
+        Cat x y ->
+            "Cat\n" ++ String.repeat n " " ++ showTheDoc (n + 1) curr x ++ String.repeat n " " ++ showTheDoc (n + 1) curr y
+
+        Nest x y ->
+            "Nest\n" ++ String.repeat n " " ++ showTheDoc (n + 1) curr y
+
+        Line ->
+            "Line\n"
+
+        Union x y ->
+            "Union\n" ++ String.repeat n " " ++ showTheDoc (n + 1) curr x ++ String.repeat n " " ++ showTheDoc (n + 1) curr y
+
+        Column f ->
+            "Column\n" ++ String.repeat n " " ++ showTheDoc (n + 1) curr (f curr)
+
+        Columns f ->
+            "Columns\n" ++ String.repeat n " " ++ showTheDoc (n + 1) curr (f (Just curr))
+
+        Nesting f ->
+            "Nesting\n" ++ String.repeat n " " ++ showTheDoc (n + 1) curr (f curr)
+
+        Empty ->
+            "Empty\n"
+
+        Char c ->
+            "Char (" ++ String.cons c ")\n"
+
+        Text _ s ->
+            "Text (" ++ s ++ ")\n"
+
+        Fail ->
+            "FAIL\n"
