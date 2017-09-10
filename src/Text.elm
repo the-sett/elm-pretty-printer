@@ -1,27 +1,27 @@
 module Text exposing (..)
 
+import Console as Ansi
+
 
 type Color
-    = Black
-    | Red
-    | Green
-    | Yellow
-    | Blue
-    | Magenta
-    | Cyan
-    | White
+    = Black (String -> String)
+    | Red (String -> String)
+    | Green (String -> String)
+    | Yellow (String -> String)
+    | Blue (String -> String)
+    | Magenta (String -> String)
+    | Cyan (String -> String)
+    | White (String -> String)
 
 
 type Underlining
-    = SingleUnderline
-    | NoUnderline
+    = SingleUnderline (String -> String)
+    | NoUnderline (String -> String)
 
 
-
-{--
-  TODO:
-    - support for Color and Underline
---}
+type ConsoleLayer
+    = Foreground
+    | Background
 
 
 type Doc
@@ -34,9 +34,15 @@ type Doc
     | Cat Doc Doc
     | Nest Int Doc
     | Union Doc Doc
+    | Color ConsoleLayer Color Doc
     | Column (Int -> Doc)
     | Columns (Maybe Int -> Doc)
     | Nesting (Int -> Doc)
+    | RestoreFormat (Maybe Color) (Maybe Color)
+
+
+
+-- OPERATORS
 
 
 infixr 6 <>
@@ -69,14 +75,8 @@ infixr 5 </>
     doc1 <> softline <> doc2
 
 
-cat : List Doc -> Doc
-cat =
-    group << vcat
 
-
-enclose : Doc -> Doc -> Doc -> Doc
-enclose left right middle =
-    left <> middle <> right
+-- CHARS
 
 
 colon : Doc
@@ -114,25 +114,33 @@ rparen =
     Char ')'
 
 
+space : Doc
+space =
+    Char ' '
+
+
 parens : Doc -> Doc
 parens =
     enclose lparen rparen
 
 
-empty : Doc
-empty =
-    Empty
+
+-- COMBINATORS
+
+
+cat : List Doc -> Doc
+cat =
+    group << vcat
+
+
+enclose : Doc -> Doc -> Doc -> Doc
+enclose left right middle =
+    left <> middle <> right
 
 
 group : Doc -> Doc
 group doc =
     Union (flatten doc) doc
-
-
-
--- yellow : Doc -> Doc
--- yellow =
---     Color Yellow
 
 
 flatten : Doc -> Doc
@@ -161,6 +169,9 @@ flatten doc =
 
         Nesting f ->
             Nesting (flatten << f)
+
+        Color layer color doc ->
+            Color layer color (flatten doc)
 
         other ->
             other
@@ -197,9 +208,8 @@ fold fn docs =
         |> Maybe.withDefault Empty
 
 
-space : Doc
-space =
-    Char ' '
+
+-- PUBLIC CONSTRUCTORS
 
 
 spaces : Int -> String
@@ -270,6 +280,95 @@ hardline =
     Line
 
 
+empty : Doc
+empty =
+    Empty
+
+
+
+-- COLORS
+
+
+black : Doc -> Doc
+black =
+    color (Black Ansi.black)
+
+
+red : Doc -> Doc
+red =
+    color (Red Ansi.red)
+
+
+darkRed : Doc -> Doc
+darkRed =
+    color <| Red (Ansi.dark << Ansi.red)
+
+
+green : Doc -> Doc
+green =
+    color (Green Ansi.green)
+
+
+darkGreen : Doc -> Doc
+darkGreen =
+    color <| Green (Ansi.dark << Ansi.green)
+
+
+yellow : Doc -> Doc
+yellow =
+    color (Yellow Ansi.yellow)
+
+
+darkYellow : Doc -> Doc
+darkYellow =
+    color <| Yellow (Ansi.dark << Ansi.yellow)
+
+
+blue : Doc -> Doc
+blue =
+    color (Blue Ansi.blue)
+
+
+darkBlue : Doc -> Doc
+darkBlue =
+    color <| Blue (Ansi.dark << Ansi.blue)
+
+
+magenta : Doc -> Doc
+magenta =
+    color (Magenta Ansi.magenta)
+
+
+darkMagenta : Doc -> Doc
+darkMagenta =
+    color <| Magenta (Ansi.dark << Ansi.magenta)
+
+
+cyan : Doc -> Doc
+cyan =
+    color (Cyan Ansi.cyan)
+
+
+darkCyan : Doc -> Doc
+darkCyan =
+    color <| Cyan (Ansi.dark << Ansi.cyan)
+
+
+white : Doc -> Doc
+white =
+    color (White Ansi.white)
+
+
+darkWhite : Doc -> Doc
+darkWhite =
+    color <| White (Ansi.dark << Ansi.white)
+
+
+color : Color -> Doc -> Doc
+color =
+    Color Foreground
+
+
 
 -- ALIGNMENT
 
@@ -292,6 +391,10 @@ align doc =
         )
 
 
+
+-- UTIL
+
+
 foldr1 : (a -> a -> a) -> List a -> Maybe a
 foldr1 f xs =
     -- https://github.com/haskell-suite/base/blob/master/Data/Foldable.hs#L144
@@ -303,3 +406,42 @@ foldr1 f xs =
                 |> Just
     in
     List.foldr folding Nothing xs
+
+
+toColor : Color -> (String -> String)
+toColor color =
+    case color of
+        Black toBlack ->
+            toBlack
+
+        Red toRed ->
+            toRed
+
+        Green toGreen ->
+            toGreen
+
+        Yellow toYellow ->
+            toYellow
+
+        Blue toBlue ->
+            toBlue
+
+        Magenta toMagenta ->
+            toMagenta
+
+        Cyan toCyan ->
+            toCyan
+
+        White toWhite ->
+            toWhite
+
+
+toUnderline : Underlining -> (String -> String)
+toUnderline underline =
+    case underline of
+        SingleUnderline toUnderline_ ->
+            toUnderline_
+
+        NoUnderline removeUnderline ->
+            -- placeholder, find fn that removes underline
+            Ansi.plain

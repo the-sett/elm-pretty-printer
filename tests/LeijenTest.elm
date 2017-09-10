@@ -1,5 +1,6 @@
 module LeijenTest exposing (..)
 
+import Console
 import Expect exposing (Expectation)
 import Render
 import Test exposing (..)
