@@ -7,6 +7,7 @@ import Text exposing (..)
 type TextFormatter
     = WithColor ConsoleLayer Color
     | WithUnderline Underlining
+    | WithBold (String -> String)
     | Reset
 
 
@@ -42,11 +43,13 @@ renderFits :
     -> SimpleDoc
 renderFits doesItFit rfrac pageWidth doc =
     let
-        -- https://github.com/ekmett/ansi-wl-pprint/blob/master/Text/PrettyPrint/ANSI/Leijen/Internal.hs#L1005
         ribbonWidth =
-            32
+            round (toFloat pageWidth * rfrac)
+                |> min pageWidth
+                |> max 0
 
-        best indent currCol foregroundColor backgroundColor docs =
+        best : Int -> Int -> Maybe Color -> Maybe Color -> Maybe (String -> String) -> Maybe Underlining -> Docs -> SimpleDoc
+        best indent currCol foregroundColor backgroundColor boldFormatter underlining docs =
             case docs of
                 Nil ->
                     SEmpty
@@ -54,10 +57,10 @@ renderFits doesItFit rfrac pageWidth doc =
                 Cons n document documents ->
                     let
                         bestTypical indent currCol docs =
-                            best indent currCol foregroundColor backgroundColor docs
+                            best indent currCol foregroundColor backgroundColor boldFormatter underlining docs
 
                         dsRestore =
-                            Cons n (RestoreFormat foregroundColor backgroundColor) documents
+                            Cons n (RestoreFormat foregroundColor backgroundColor boldFormatter underlining) documents
                     in
                     case document of
                         Fail ->
@@ -110,18 +113,32 @@ renderFits doesItFit rfrac pageWidth doc =
                                         Foreground ->
                                             ( Just color, backgroundColor )
                             in
-                            SFormatted [ WithColor layer color ] (best indent currCol fgColor bgColor (Cons n doc dsRestore))
+                            SFormatted
+                                [ WithColor layer color ]
+                                (best indent currCol fgColor bgColor boldFormatter underlining (Cons n doc dsRestore))
 
-                        RestoreFormat fgColor bgColor ->
+                        Bold fn doc ->
+                            SFormatted
+                                [ WithBold fn ]
+                                (best indent currCol foregroundColor backgroundColor (Just fn) underlining (Cons n doc dsRestore))
+
+                        Underline lining doc ->
+                            SFormatted
+                                [ WithUnderline lining ]
+                                (best indent currCol foregroundColor backgroundColor boldFormatter (Just lining) (Cons n doc dsRestore))
+
+                        RestoreFormat fgColor bgColor boldFormatter underlining ->
                             let
                                 formats =
                                     Reset
                                         :: List.filterMap identity
                                             [ Maybe.map (WithColor Foreground) fgColor
                                             , Maybe.map (WithColor Background) bgColor
+                                            , Maybe.map WithBold boldFormatter
+                                            , Maybe.map WithUnderline underlining
                                             ]
                             in
-                            SFormatted formats (best indent currCol fgColor bgColor documents)
+                            SFormatted formats (best indent currCol fgColor bgColor boldFormatter underlining documents)
 
         nicest indent currCol doc1 doc2 =
             let
@@ -133,7 +150,7 @@ renderFits doesItFit rfrac pageWidth doc =
             else
                 doc2
     in
-    best 0 0 Nothing Nothing (Cons 0 doc Nil)
+    best 0 0 Nothing Nothing Nothing Nothing (Cons 0 doc Nil)
 
 
 
@@ -177,20 +194,17 @@ display simpleDoc =
             ""
 
         SChar char sDoc ->
-            display sDoc
-                |> String.cons char
+            String.cons char (display sDoc)
 
         SText _ content sDoc ->
-            display sDoc
-                |> String.append content
+            String.append content (display sDoc)
 
         SLine indents sDoc ->
             display sDoc
-                |> String.append (String.cons '\n' (indentation indents))
+                |> String.append (String.cons '\n' (spaces indents))
 
         SFormatted formats sDoc ->
-            formats
-                |> List.map getFormatter
+            List.map getFormatter formats
                 |> List.foldr (<|) (display sDoc)
 
 
@@ -206,10 +220,5 @@ getFormatter format =
         WithUnderline underlining ->
             toUnderline underlining
 
-
-indentation : Int -> String
-indentation n =
-    if n <= 0 then
-        ""
-    else
-        String.repeat n " "
+        WithBold formatter ->
+            formatter

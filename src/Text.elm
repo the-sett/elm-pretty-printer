@@ -35,10 +35,13 @@ type Doc
     | Nest Int Doc
     | Union Doc Doc
     | Color ConsoleLayer Color Doc
+    | Bold (String -> String) Doc
+    | Underline Underlining Doc
     | Column (Int -> Doc)
     | Columns (Maybe Int -> Doc)
     | Nesting (Int -> Doc)
-    | RestoreFormat (Maybe Color) (Maybe Color)
+      -- foreground, background, boldFormatter, underlining
+    | RestoreFormat (Maybe Color) (Maybe Color) (Maybe (String -> String)) (Maybe Underlining)
 
 
 
@@ -173,6 +176,9 @@ flatten doc =
         Color layer color doc ->
             Color layer color (flatten doc)
 
+        Bold f doc ->
+            Bold f (flatten doc)
+
         other ->
             other
 
@@ -210,14 +216,6 @@ fold fn docs =
 
 
 -- PUBLIC CONSTRUCTORS
-
-
-spaces : Int -> String
-spaces n =
-    if n <= 0 then
-        ""
-    else
-        String.repeat n " "
 
 
 char : Char -> Doc
@@ -369,6 +367,69 @@ color =
     Color Foreground
 
 
+bgColor : Color -> Doc -> Doc
+bgColor =
+    Color Background
+
+
+onRed : Doc -> Doc
+onRed =
+    bgColor (Red Ansi.bgRed)
+
+
+onWhite : Doc -> Doc
+onWhite =
+    bgColor (White Ansi.bgWhite)
+
+
+onBlue : Doc -> Doc
+onBlue =
+    bgColor (Blue Ansi.bgBlue)
+
+
+onYellow : Doc -> Doc
+onYellow =
+    bgColor (Yellow Ansi.bgYellow)
+
+
+onCyan : Doc -> Doc
+onCyan =
+    bgColor (Cyan Ansi.bgCyan)
+
+
+onGreen : Doc -> Doc
+onGreen =
+    bgColor (Green Ansi.bgGreen)
+
+
+onBlack : Doc -> Doc
+onBlack =
+    bgColor (Black Ansi.bgBlack)
+
+
+onMagenta : Doc -> Doc
+onMagenta =
+    bgColor (Magenta Ansi.bgMagenta)
+
+
+
+-- BOLD
+
+
+bold : Doc -> Doc
+bold =
+    Bold Ansi.bold
+
+
+
+-- UNDERLINE
+
+
+underline : Doc -> Doc
+underline =
+    Underline (SingleUnderline Ansi.underline)
+
+
 
 -- ALIGNMENT
 
@@ -387,7 +448,8 @@ align : Doc -> Doc
 align doc =
     column
         (\currentColumn ->
-            nesting (\indentLvl -> nest (currentColumn - indentLvl) doc)
+            nesting
+                (\indentLvl -> nest (currentColumn - indentLvl) doc)
         )
 
 
@@ -395,17 +457,25 @@ align doc =
 -- UTIL
 
 
+spaces : Int -> String
+spaces n =
+    if n <= 0 then
+        ""
+    else
+        String.repeat n " "
+
+
 foldr1 : (a -> a -> a) -> List a -> Maybe a
 foldr1 f xs =
     -- https://github.com/haskell-suite/base/blob/master/Data/Foldable.hs#L144
     let
-        folding x m =
-            m
-                |> Maybe.map (f x)
-                |> Maybe.withDefault x
+        foldMaybes elt acc =
+            acc
+                |> Maybe.map (f elt)
+                |> Maybe.withDefault elt
                 |> Just
     in
-    List.foldr folding Nothing xs
+    List.foldr foldMaybes Nothing xs
 
 
 toColor : Color -> (String -> String)
@@ -443,5 +513,4 @@ toUnderline underline =
             toUnderline_
 
         NoUnderline removeUnderline ->
-            -- placeholder, find fn that removes underline
-            Ansi.plain
+            removeUnderline
