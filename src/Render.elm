@@ -2,12 +2,13 @@ module Render exposing (show)
 
 import Console as Ansi
 import Text exposing (..)
+import Utils
 
 
-type TextFormatter
+type TextFormat
     = WithColor ConsoleLayer Color
-    | WithUnderline Underlining
-    | WithBold (String -> String)
+    | WithUnderline Formatter
+    | WithBold Formatter
     | Reset
 
 
@@ -17,7 +18,7 @@ type SimpleDoc
     | SChar Char SimpleDoc
     | SText Int String SimpleDoc
     | SLine Int SimpleDoc
-    | SFormatted (List TextFormatter) SimpleDoc
+    | SFormatted (List TextFormat) SimpleDoc
 
 
 type Docs
@@ -48,8 +49,8 @@ renderFits doesItFit rfrac pageWidth doc =
                 |> min pageWidth
                 |> max 0
 
-        best : Int -> Int -> Maybe Color -> Maybe Color -> Maybe (String -> String) -> Maybe Underlining -> Docs -> SimpleDoc
-        best indent currCol foregroundColor backgroundColor boldFormatter underlining docs =
+        best : Int -> Int -> Maybe Color -> Maybe Color -> Maybe Formatter -> Maybe Formatter -> Docs -> SimpleDoc
+        best indent currCol foregroundColor backgroundColor boldFormatter underliner docs =
             case docs of
                 Nil ->
                     SEmpty
@@ -57,10 +58,18 @@ renderFits doesItFit rfrac pageWidth doc =
                 Cons n document documents ->
                     let
                         bestTypical indent currCol docs =
-                            best indent currCol foregroundColor backgroundColor boldFormatter underlining docs
+                            best indent currCol foregroundColor backgroundColor boldFormatter underliner docs
 
                         dsRestore =
-                            Cons n (RestoreFormat foregroundColor backgroundColor boldFormatter underlining) documents
+                            Cons n
+                                (RestoreFormat
+                                    { fgColor = foregroundColor
+                                    , bgColor = backgroundColor
+                                    , bold = boldFormatter
+                                    , underliner = underliner
+                                    }
+                                )
+                                documents
                     in
                     case document of
                         Fail ->
@@ -115,30 +124,30 @@ renderFits doesItFit rfrac pageWidth doc =
                             in
                             SFormatted
                                 [ WithColor layer color ]
-                                (best indent currCol fgColor bgColor boldFormatter underlining (Cons n doc dsRestore))
+                                (best indent currCol fgColor bgColor boldFormatter underliner (Cons n doc dsRestore))
 
                         Bold fn doc ->
                             SFormatted
                                 [ WithBold fn ]
-                                (best indent currCol foregroundColor backgroundColor (Just fn) underlining (Cons n doc dsRestore))
+                                (best indent currCol foregroundColor backgroundColor (Just fn) underliner (Cons n doc dsRestore))
 
-                        Underline lining doc ->
+                        Underline fn doc ->
                             SFormatted
-                                [ WithUnderline lining ]
-                                (best indent currCol foregroundColor backgroundColor boldFormatter (Just lining) (Cons n doc dsRestore))
+                                [ WithUnderline fn ]
+                                (best indent currCol foregroundColor backgroundColor boldFormatter (Just fn) (Cons n doc dsRestore))
 
-                        RestoreFormat fgColor bgColor boldFormatter underlining ->
+                        RestoreFormat { fgColor, bgColor, bold, underliner } ->
                             let
                                 formats =
                                     Reset
                                         :: List.filterMap identity
                                             [ Maybe.map (WithColor Foreground) fgColor
                                             , Maybe.map (WithColor Background) bgColor
-                                            , Maybe.map WithBold boldFormatter
-                                            , Maybe.map WithUnderline underlining
+                                            , Maybe.map WithBold bold
+                                            , Maybe.map WithUnderline underliner
                                             ]
                             in
-                            SFormatted formats (best indent currCol fgColor bgColor boldFormatter underlining documents)
+                            SFormatted formats (best indent currCol fgColor bgColor boldFormatter underliner documents)
 
         nicest indent currCol doc1 doc2 =
             let
@@ -201,14 +210,14 @@ display simpleDoc =
 
         SLine indents sDoc ->
             display sDoc
-                |> String.append (String.cons '\n' (spaces indents))
+                |> String.append (String.cons '\n' (Utils.spaces indents))
 
         SFormatted formats sDoc ->
             List.map getFormatter formats
                 |> List.foldr (<|) (display sDoc)
 
 
-getFormatter : TextFormatter -> (String -> String)
+getFormatter : TextFormat -> Formatter
 getFormatter format =
     case format of
         Reset ->
@@ -217,8 +226,8 @@ getFormatter format =
         WithColor layer color ->
             toColor color
 
-        WithUnderline underlining ->
-            toUnderline underlining
+        WithUnderline underliner ->
+            underliner
 
         WithBold formatter ->
             formatter

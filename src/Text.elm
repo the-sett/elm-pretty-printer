@@ -1,22 +1,22 @@
 module Text exposing (..)
 
 import Console as Ansi
+import Utils
+
+
+type alias Formatter =
+    String -> String
 
 
 type Color
-    = Black (String -> String)
-    | Red (String -> String)
-    | Green (String -> String)
-    | Yellow (String -> String)
-    | Blue (String -> String)
-    | Magenta (String -> String)
-    | Cyan (String -> String)
-    | White (String -> String)
-
-
-type Underlining
-    = SingleUnderline (String -> String)
-    | NoUnderline (String -> String)
+    = Black Formatter
+    | Red Formatter
+    | Green Formatter
+    | Yellow Formatter
+    | Blue Formatter
+    | Magenta Formatter
+    | Cyan Formatter
+    | White Formatter
 
 
 type ConsoleLayer
@@ -35,13 +35,17 @@ type Doc
     | Nest Int Doc
     | Union Doc Doc
     | Color ConsoleLayer Color Doc
-    | Bold (String -> String) Doc
-    | Underline Underlining Doc
+    | Bold Formatter Doc
+    | Underline Formatter Doc
     | Column (Int -> Doc)
     | Columns (Maybe Int -> Doc)
     | Nesting (Int -> Doc)
-      -- foreground, background, boldFormatter, underlining
-    | RestoreFormat (Maybe Color) (Maybe Color) (Maybe (String -> String)) (Maybe Underlining)
+    | RestoreFormat
+        { fgColor : Maybe Color
+        , bgColor : Maybe Color
+        , bold : Maybe Formatter
+        , underliner : Maybe Formatter
+        }
 
 
 
@@ -210,12 +214,12 @@ fillSep =
 
 fold : (Doc -> Doc -> Doc) -> List Doc -> Doc
 fold fn docs =
-    foldr1 fn docs
+    Utils.foldr1 fn docs
         |> Maybe.withDefault Empty
 
 
 
--- PUBLIC CONSTRUCTORS
+-- BASIC COMBINATORS
 
 
 char : Char -> Doc
@@ -427,7 +431,7 @@ bold =
 
 underline : Doc -> Doc
 underline =
-    Underline (SingleUnderline Ansi.underline)
+    Underline Ansi.underline
 
 
 
@@ -436,7 +440,7 @@ underline =
 
 indent : Int -> Doc -> Doc
 indent n doc =
-    hang n (text (spaces n) <> doc)
+    hang n (text (Utils.spaces n) <> doc)
 
 
 hang : Int -> Doc -> Doc
@@ -453,32 +457,7 @@ align doc =
         )
 
 
-
--- UTIL
-
-
-spaces : Int -> String
-spaces n =
-    if n <= 0 then
-        ""
-    else
-        String.repeat n " "
-
-
-foldr1 : (a -> a -> a) -> List a -> Maybe a
-foldr1 f xs =
-    -- https://github.com/haskell-suite/base/blob/master/Data/Foldable.hs#L144
-    let
-        foldMaybes elt acc =
-            acc
-                |> Maybe.map (f elt)
-                |> Maybe.withDefault elt
-                |> Just
-    in
-    List.foldr foldMaybes Nothing xs
-
-
-toColor : Color -> (String -> String)
+toColor : Color -> Formatter
 toColor color =
     case color of
         Black toBlack ->
@@ -504,13 +483,3 @@ toColor color =
 
         White toWhite ->
             toWhite
-
-
-toUnderline : Underlining -> (String -> String)
-toUnderline underline =
-    case underline of
-        SingleUnderline toUnderline_ ->
-            toUnderline_
-
-        NoUnderline removeUnderline ->
-            removeUnderline

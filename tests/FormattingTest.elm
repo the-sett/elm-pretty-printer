@@ -1,4 +1,4 @@
-module ColorsTest exposing (..)
+module FormattingTest exposing (..)
 
 import Console as Ansi
 import Expect exposing (Expectation)
@@ -10,7 +10,7 @@ import Text exposing (..)
 suite : Test
 suite =
     -- passes aesthetic tests, but tests fail when comparing actual strings (different escape sequences)
-    describe "Colors"
+    describe "Formatting"
         [ skip <|
             describe "foreground colors"
                 [ test "colors are applied at text level" <|
