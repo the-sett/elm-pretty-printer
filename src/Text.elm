@@ -1,22 +1,22 @@
 module Text exposing (..)
 
 import Console as Ansi
+import Utils
+
+
+type alias Formatter =
+    String -> String
 
 
 type Color
-    = Black (String -> String)
-    | Red (String -> String)
-    | Green (String -> String)
-    | Yellow (String -> String)
-    | Blue (String -> String)
-    | Magenta (String -> String)
-    | Cyan (String -> String)
-    | White (String -> String)
-
-
-type Underlining
-    = SingleUnderline (String -> String)
-    | NoUnderline (String -> String)
+    = Black Formatter
+    | Red Formatter
+    | Green Formatter
+    | Yellow Formatter
+    | Blue Formatter
+    | Magenta Formatter
+    | Cyan Formatter
+    | White Formatter
 
 
 type ConsoleLayer
@@ -35,10 +35,17 @@ type Doc
     | Nest Int Doc
     | Union Doc Doc
     | Color ConsoleLayer Color Doc
+    | Bold Formatter Doc
+    | Underline Formatter Doc
     | Column (Int -> Doc)
     | Columns (Maybe Int -> Doc)
     | Nesting (Int -> Doc)
-    | RestoreFormat (Maybe Color) (Maybe Color)
+    | RestoreFormat
+        { fgColor : Maybe Color
+        , bgColor : Maybe Color
+        , bold : Maybe Formatter
+        , underliner : Maybe Formatter
+        }
 
 
 
@@ -173,6 +180,9 @@ flatten doc =
         Color layer color doc ->
             Color layer color (flatten doc)
 
+        Bold f doc ->
+            Bold f (flatten doc)
+
         other ->
             other
 
@@ -204,20 +214,12 @@ fillSep =
 
 fold : (Doc -> Doc -> Doc) -> List Doc -> Doc
 fold fn docs =
-    foldr1 fn docs
+    Utils.foldr1 fn docs
         |> Maybe.withDefault Empty
 
 
 
--- PUBLIC CONSTRUCTORS
-
-
-spaces : Int -> String
-spaces n =
-    if n <= 0 then
-        ""
-    else
-        String.repeat n " "
+-- BASIC COMBINATORS
 
 
 char : Char -> Doc
@@ -369,13 +371,150 @@ color =
     Color Foreground
 
 
+bgColor : Color -> Doc -> Doc
+bgColor =
+    Color Background
+
+
+onRed : Doc -> Doc
+onRed =
+    bgColor (Red Ansi.bgRed)
+
+
+onWhite : Doc -> Doc
+onWhite =
+    bgColor (White Ansi.bgWhite)
+
+
+onBlue : Doc -> Doc
+onBlue =
+    bgColor (Blue Ansi.bgBlue)
+
+
+onYellow : Doc -> Doc
+onYellow =
+    bgColor (Yellow Ansi.bgYellow)
+
+
+onCyan : Doc -> Doc
+onCyan =
+    bgColor (Cyan Ansi.bgCyan)
+
+
+onGreen : Doc -> Doc
+onGreen =
+    bgColor (Green Ansi.bgGreen)
+
+
+onBlack : Doc -> Doc
+onBlack =
+    bgColor (Black Ansi.bgBlack)
+
+
+onMagenta : Doc -> Doc
+onMagenta =
+    bgColor (Magenta Ansi.bgMagenta)
+
+
+
+-- BOLD
+
+
+bold : Doc -> Doc
+bold =
+    Bold Ansi.bold
+
+
+debold : Doc -> Doc
+debold doc =
+    case doc of
+        Bold formatter restOfDoc ->
+            restOfDoc
+
+        Union doc1 doc2 ->
+            Union (debold doc1) (debold doc2)
+
+        Cat doc1 doc2 ->
+            Cat (debold doc1) (debold doc2)
+
+        Color layer color doc ->
+            Color layer color (debold doc)
+
+        Underline formatter doc ->
+            Underline formatter (debold doc)
+
+        FlatAlt doc1 doc2 ->
+            FlatAlt (debold doc1) (debold doc2)
+
+        Nest nestingLvl doc ->
+            Nest nestingLvl (debold doc)
+
+        Column f ->
+            Column (debold << f)
+
+        Columns f ->
+            Columns (debold << f)
+
+        Nesting f ->
+            Nesting (debold << f)
+
+        _ ->
+            doc
+
+
+
+-- UNDERLINE
+
+
+underline : Doc -> Doc
+underline =
+    Underline Ansi.underline
+
+
+deunderline : Doc -> Doc
+deunderline doc =
+    case doc of
+        Underline formatter restOfDoc ->
+            restOfDoc
+
+        Union doc1 doc2 ->
+            Union (deunderline doc1) (deunderline doc2)
+
+        Cat doc1 doc2 ->
+            Cat (deunderline doc1) (deunderline doc2)
+
+        Color layer color doc ->
+            Color layer color (deunderline doc)
+
+        Bold formatter doc ->
+            Bold formatter (deunderline doc)
+
+        FlatAlt doc1 doc2 ->
+            FlatAlt (deunderline doc1) (deunderline doc2)
+
+        Nest nestingLvl doc ->
+            Nest nestingLvl (deunderline doc)
+
+        Column docFromCurrCol ->
+            Column (deunderline << docFromCurrCol)
+
+        Columns docFromCurrCol ->
+            Columns (deunderline << docFromCurrCol)
+
+        Nesting docFromIndent ->
+            Nesting (deunderline << docFromIndent)
+
+        _ ->
+            doc
+
+
 
 -- ALIGNMENT
 
 
 indent : Int -> Doc -> Doc
-indent n doc =
-    hang n (text (spaces n) <> doc)
+indent spaces doc =
+    hang spaces (text (Utils.spaces spaces) <> doc)
 
 
 hang : Int -> Doc -> Doc
@@ -387,29 +526,13 @@ align : Doc -> Doc
 align doc =
     column
         (\currentColumn ->
-            nesting (\indentLvl -> nest (currentColumn - indentLvl) doc)
+            nesting
+                (\indentLvl -> nest (currentColumn - indentLvl) doc)
         )
 
 
-
--- UTIL
-
-
-foldr1 : (a -> a -> a) -> List a -> Maybe a
-foldr1 f xs =
-    -- https://github.com/haskell-suite/base/blob/master/Data/Foldable.hs#L144
-    let
-        folding x m =
-            m
-                |> Maybe.map (f x)
-                |> Maybe.withDefault x
-                |> Just
-    in
-    List.foldr folding Nothing xs
-
-
-toColor : Color -> (String -> String)
-toColor color =
+colorFormatter : Color -> Formatter
+colorFormatter color =
     case color of
         Black toBlack ->
             toBlack
@@ -434,14 +557,3 @@ toColor color =
 
         White toWhite ->
             toWhite
-
-
-toUnderline : Underlining -> (String -> String)
-toUnderline underline =
-    case underline of
-        SingleUnderline toUnderline_ ->
-            toUnderline_
-
-        NoUnderline removeUnderline ->
-            -- placeholder, find fn that removes underline
-            Ansi.plain
