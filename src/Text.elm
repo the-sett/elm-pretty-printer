@@ -471,13 +471,50 @@ underline =
     Underline Ansi.underline
 
 
+deunderline : Doc -> Doc
+deunderline doc =
+    case doc of
+        Underline formatter restOfDoc ->
+            restOfDoc
+
+        Union doc1 doc2 ->
+            Union (deunderline doc1) (deunderline doc2)
+
+        Cat doc1 doc2 ->
+            Cat (deunderline doc1) (deunderline doc2)
+
+        Color layer color doc ->
+            Color layer color (deunderline doc)
+
+        Bold formatter doc ->
+            Bold formatter (deunderline doc)
+
+        FlatAlt doc1 doc2 ->
+            FlatAlt (deunderline doc1) (deunderline doc2)
+
+        Nest nestingLvl doc ->
+            Nest nestingLvl (deunderline doc)
+
+        Column docFromCurrCol ->
+            Column (deunderline << docFromCurrCol)
+
+        Columns docFromCurrCol ->
+            Columns (deunderline << docFromCurrCol)
+
+        Nesting docFromIndent ->
+            Nesting (deunderline << docFromIndent)
+
+        _ ->
+            doc
+
+
 
 -- ALIGNMENT
 
 
 indent : Int -> Doc -> Doc
-indent n doc =
-    hang n (text (Utils.spaces n) <> doc)
+indent spaces doc =
+    hang spaces (text (Utils.spaces spaces) <> doc)
 
 
 hang : Int -> Doc -> Doc
@@ -494,8 +531,8 @@ align doc =
         )
 
 
-toColor : Color -> Formatter
-toColor color =
+colorFormatter : Color -> Formatter
+colorFormatter color =
     case color of
         Black toBlack ->
             toBlack

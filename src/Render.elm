@@ -81,8 +81,8 @@ renderFits doesItFit rfrac pageWidth doc =
                         Char char ->
                             SChar char (bestTypical indent (currCol + 1) documents)
 
-                        Text l str ->
-                            SText l str (bestTypical indent (currCol + l) documents)
+                        Text length str ->
+                            SText length str (bestTypical indent (currCol + length) documents)
 
                         Line ->
                             SLine n (bestTypical n n documents)
@@ -224,7 +224,7 @@ getFormatter format =
             Ansi.plain
 
         WithColor layer color ->
-            toColor color
+            colorFormatter color
 
         WithUnderline underliner ->
             underliner
