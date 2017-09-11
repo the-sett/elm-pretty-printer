@@ -1,11 +1,13 @@
 module Render exposing (show)
 
+import Console as Ansi
 import Text exposing (..)
 
 
 type TextFormatter
-    = SetColor Color
-    | SetUnderlining Underlining
+    = WithColor ConsoleLayer Color
+    | WithUnderline Underlining
+    | Reset
 
 
 type SimpleDoc
@@ -14,6 +16,7 @@ type SimpleDoc
     | SChar Char SimpleDoc
     | SText Int String SimpleDoc
     | SLine Int SimpleDoc
+    | SFormatted (List TextFormatter) SimpleDoc
 
 
 type Docs
@@ -43,52 +46,82 @@ renderFits doesItFit rfrac pageWidth doc =
         ribbonWidth =
             32
 
-        best indent currCol docs =
+        best indent currCol foregroundColor backgroundColor docs =
             case docs of
                 Nil ->
                     SEmpty
 
                 Cons n document documents ->
+                    let
+                        bestTypical indent currCol docs =
+                            best indent currCol foregroundColor backgroundColor docs
+
+                        dsRestore =
+                            Cons n (RestoreFormat foregroundColor backgroundColor) documents
+                    in
                     case document of
                         Fail ->
                             SFail
 
                         Empty ->
-                            best indent currCol documents
+                            bestTypical indent currCol documents
 
                         Char char ->
-                            SChar char (best indent (currCol + 1) documents)
+                            SChar char (bestTypical indent (currCol + 1) documents)
 
                         Text l str ->
-                            SText l str (best indent (currCol + l) documents)
+                            SText l str (bestTypical indent (currCol + l) documents)
 
                         Line ->
-                            SLine n (best n n documents)
+                            SLine n (bestTypical n n documents)
 
                         FlatAlt doc1 _ ->
-                            best indent currCol (Cons n doc1 documents)
+                            bestTypical indent currCol (Cons n doc1 documents)
 
                         Cat doc1 doc2 ->
-                            best indent currCol (Cons n doc1 (Cons n doc2 documents))
+                            bestTypical indent currCol (Cons n doc1 (Cons n doc2 documents))
 
                         Nest num doc_ ->
-                            best indent currCol (Cons (num + n) doc_ documents)
+                            bestTypical indent currCol (Cons (num + n) doc_ documents)
 
                         Union doc1 doc2 ->
                             nicest
                                 indent
                                 currCol
-                                (best indent currCol (Cons n doc1 documents))
-                                (best indent currCol (Cons n doc2 documents))
+                                (bestTypical indent currCol (Cons n doc1 documents))
+                                (bestTypical indent currCol (Cons n doc2 documents))
 
                         Column fn ->
-                            best indent currCol (Cons n (fn currCol) documents)
+                            bestTypical indent currCol (Cons n (fn currCol) documents)
 
                         Columns fn ->
-                            best indent currCol (Cons n (fn (Just pageWidth)) documents)
+                            bestTypical indent currCol (Cons n (fn (Just pageWidth)) documents)
 
                         Nesting fn ->
-                            best indent currCol (Cons n (fn n) documents)
+                            bestTypical indent currCol (Cons n (fn n) documents)
+
+                        Color layer color doc ->
+                            let
+                                ( fgColor, bgColor ) =
+                                    case layer of
+                                        Background ->
+                                            ( foregroundColor, Just color )
+
+                                        Foreground ->
+                                            ( Just color, backgroundColor )
+                            in
+                            SFormatted [ WithColor layer color ] (best indent currCol fgColor bgColor (Cons n doc dsRestore))
+
+                        RestoreFormat fgColor bgColor ->
+                            let
+                                formats =
+                                    Reset
+                                        :: List.filterMap identity
+                                            [ Maybe.map (WithColor Foreground) fgColor
+                                            , Maybe.map (WithColor Background) bgColor
+                                            ]
+                            in
+                            SFormatted formats (best indent currCol fgColor bgColor documents)
 
         nicest indent currCol doc1 doc2 =
             let
@@ -100,7 +133,7 @@ renderFits doesItFit rfrac pageWidth doc =
             else
                 doc2
     in
-    best 0 0 (Cons 0 doc Nil)
+    best 0 0 Nothing Nothing (Cons 0 doc Nil)
 
 
 
@@ -130,6 +163,9 @@ willFit1 pageWidth minNestingLvl firstLineWidth simpleDoc =
             SLine width sDoc ->
                 True
 
+            SFormatted _ sDoc ->
+                willFit1 pageWidth minNestingLvl firstLineWidth sDoc
+
 
 display : SimpleDoc -> String
 display simpleDoc =
@@ -151,6 +187,24 @@ display simpleDoc =
         SLine indents sDoc ->
             display sDoc
                 |> String.append (String.cons '\n' (indentation indents))
+
+        SFormatted formats sDoc ->
+            formats
+                |> List.map getFormatter
+                |> List.foldr (<|) (display sDoc)
+
+
+getFormatter : TextFormatter -> (String -> String)
+getFormatter format =
+    case format of
+        Reset ->
+            Ansi.plain
+
+        WithColor layer color ->
+            toColor color
+
+        WithUnderline underlining ->
+            toUnderline underlining
 
 
 indentation : Int -> String
