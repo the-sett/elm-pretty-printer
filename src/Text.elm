@@ -425,6 +425,43 @@ bold =
     Bold Ansi.bold
 
 
+debold : Doc -> Doc
+debold doc =
+    case doc of
+        Bold formatter restOfDoc ->
+            restOfDoc
+
+        Union doc1 doc2 ->
+            Union (debold doc1) (debold doc2)
+
+        Cat doc1 doc2 ->
+            Cat (debold doc1) (debold doc2)
+
+        Color layer color doc ->
+            Color layer color (debold doc)
+
+        Underline formatter doc ->
+            Underline formatter (debold doc)
+
+        FlatAlt doc1 doc2 ->
+            FlatAlt (debold doc1) (debold doc2)
+
+        Nest nestingLvl doc ->
+            Nest nestingLvl (debold doc)
+
+        Column f ->
+            Column (debold << f)
+
+        Columns f ->
+            Columns (debold << f)
+
+        Nesting f ->
+            Nesting (debold << f)
+
+        _ ->
+            doc
+
+
 
 -- UNDERLINE
 

@@ -77,37 +77,67 @@ suite =
                         in
                         Expect.equal expected (Render.show result)
                 ]
-        , skip <|
-            describe "non-color formatting"
-                [ test "it can do bold text" <|
-                    \_ ->
-                        let
-                            result =
-                                text "We can do"
-                                    <+> bold (text "boldness")
-                                    <+> text "if your terminal supports it."
+        , describe "text intensity"
+            [ test "it can do bold text" <|
+                \_ ->
+                    let
+                        result =
+                            text "We can do"
+                                <+> bold (text "boldness")
+                                <+> text "if your terminal supports it."
 
-                            expected =
-                                "We can do "
-                                    ++ Ansi.bold "boldness"
-                                    ++ " if your terminal supports it."
-                        in
-                        Expect.equal expected (Render.show result)
-                , test "it can do underlining" <|
-                    \_ ->
-                        let
-                            result =
-                                text "We can do"
-                                    <+> underline (text "underlining")
-                                    <+> text "if your terminal supports it."
+                        expected =
+                            "We can do "
+                                ++ Ansi.bold "boldness"
+                                ++ " if your terminal supports it."
+                    in
+                    Expect.equal expected (Render.show result)
+            , test "it can debold text" <|
+                \_ ->
+                    let
+                        result =
+                            text "We can do"
+                                <+> debold (bold (text "boldness"))
+                                <+> text "if your terminal supports it."
 
-                            expected =
-                                "We can do "
-                                    ++ Ansi.underline "underlining"
-                                    ++ " if your terminal supports it."
-                        in
-                        Expect.equal expected (Render.show result)
-                ]
+                        expected =
+                            "We can do boldness if your terminal supports it."
+                    in
+                    Expect.equal expected (Render.show result)
+            , test "it can debold text with sporadic boldness" <|
+                \_ ->
+                    let
+                        result =
+                            debold <|
+                                hang 2 <|
+                                    text "I had some"
+                                        <+> bold (text "bold text")
+                                        <> comma
+                                        <+> text "but not"
+                                        <+> bold (text "anymore")
+                                        <> text "!"
+
+                        expected =
+                            "I had some bold text, but not anymore!"
+                    in
+                    Expect.equal expected (Render.show result)
+            ]
+        , describe "underlining"
+            [ test "it can do underlining" <|
+                \_ ->
+                    let
+                        result =
+                            text "We can do"
+                                <+> underline (text "underlining")
+                                <+> text "if your terminal supports it."
+
+                        expected =
+                            "We can do "
+                                ++ Ansi.underline "underlining"
+                                ++ " if your terminal supports it."
+                    in
+                    Expect.equal expected (Render.show result)
+            ]
         , skip <|
             describe "combinations of formatting"
                 [ test "it can do both bold and underlining" <|
