@@ -4,6 +4,44 @@ import Console as Ansi
 import Utils
 
 
+-- BASIC COMBINATORS
+--    empty, char, text, string, int, float, bool,
+--    (<>), nest, line, linebreak, group, softline,
+--    softbreak, hardline, flatAlt
+--
+-- ALIGNMENT COMBINATORS
+--    align, hang, indent, encloseSep, list,
+--    tupled, semiBraces
+--
+-- OPERATORS
+--    (<+>), (<$>), (</>), (<$$>), (<//>)
+--
+-- LIST COMBINATORS
+--    hsep, vsep, fillSep, sep, hcat, vcat, fillCat, cat, punctuate
+--
+-- FILLER COMBINATORS
+--    fill, fillBreak
+--
+-- BRACKETING COMBINATORS
+--    enclose, squotes, dquotes, parens, angles, braces, brackets
+--
+-- NAMED CHARACTER COMBINATORS
+--    lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket,
+--    squote, dquote, semi, colon, comma, space, dot, backslash, equals
+--
+-- FORMATTING COMBINATORS
+--    bold, debold, underline, deunderline
+--
+-- FORMATTING ELIMINATION COMBINATORS
+--    plain
+--
+-- RENDERING
+--    SimpleDoc(..), show
+--
+-- UNDOCUMENTED?
+--    column, columns, nesting, width
+
+
 type alias Formatter =
     String -> String
 
@@ -82,6 +120,12 @@ infixr 5 </>
     doc1 <> softline <> doc2
 
 
+infixr 5 <//>
+(<//>) : Doc -> Doc -> Doc
+(<//>) doc1 doc2 =
+    doc1 <> softbreak <> doc2
+
+
 
 -- CHARS
 
@@ -121,9 +165,34 @@ rparen =
     Char ')'
 
 
+langle : Doc
+langle =
+    Char '<'
+
+
+rangle : Doc
+rangle =
+    Char '>'
+
+
+lbracket : Doc
+lbracket =
+    Char '['
+
+
+rbracket : Doc
+rbracket =
+    Char ']'
+
+
 space : Doc
 space =
     Char ' '
+
+
+semi : Doc
+semi =
+    Char ';'
 
 
 parens : Doc -> Doc
@@ -222,6 +291,11 @@ fold fn docs =
 -- BASIC COMBINATORS
 
 
+empty : Doc
+empty =
+    Empty
+
+
 char : Char -> Doc
 char input =
     case input of
@@ -230,6 +304,61 @@ char input =
 
         _ ->
             Char input
+
+
+text : String -> Doc
+text str =
+    case str of
+        "" ->
+            Empty
+
+        s ->
+            Text (String.length s) s
+
+
+
+-- string is like "text" but replaces '\n' by "line"
+-- | The document @(string s)@ concatenates all characters in @s@
+-- using @line@ for newline characters and @char@ for all other
+-- characters. It is used instead of 'text' whenever the text contains
+-- newline characters.
+
+
+string : String -> Doc
+string str =
+    case String.uncons str of
+        Nothing ->
+            empty
+
+        Just ( '\n', rest ) ->
+            line <> string rest
+
+        _ ->
+            let
+                ( xs, ys ) =
+                    Utils.break ((==) '\n') str
+            in
+            text xs <> string ys
+
+
+int : Int -> Doc
+int =
+    text << toString
+
+
+float : Float -> Doc
+float =
+    text << toString
+
+
+bool : Bool -> Doc
+bool =
+    text << toString
+
+
+flatAlt : Doc -> Doc -> Doc
+flatAlt =
+    FlatAlt
 
 
 column : (Int -> Doc) -> Doc
@@ -245,16 +374,6 @@ nesting fn =
 nest : Int -> Doc -> Doc
 nest n doc =
     Nest n doc
-
-
-text : String -> Doc
-text str =
-    case str of
-        "" ->
-            Empty
-
-        s ->
-            Text (String.length s) s
 
 
 line : Doc
@@ -280,11 +399,6 @@ linebreak =
 hardline : Doc
 hardline =
     Line
-
-
-empty : Doc
-empty =
-    Empty
 
 
 
@@ -529,6 +643,43 @@ align doc =
             nesting
                 (\indentLvl -> nest (currentColumn - indentLvl) doc)
         )
+
+
+encloseSep : Doc -> Doc -> Doc -> List Doc -> Doc
+encloseSep left right sep docs =
+    case docs of
+        [] ->
+            left <> right
+
+        [ doc ] ->
+            left <> doc <> right
+
+        _ ->
+            let
+                separators =
+                    List.repeat (List.length docs) sep
+            in
+            align
+                (cat (List.map2 (<>) (left :: separators) docs) <> right)
+
+
+list : List Doc -> Doc
+list =
+    encloseSep lbracket rbracket comma
+
+
+tupled : List Doc -> Doc
+tupled =
+    encloseSep lparen rparen comma
+
+
+semiBraces : List Doc -> Doc
+semiBraces =
+    encloseSep lbrace rbrace semi
+
+
+
+-- OTHER
 
 
 colorFormatter : Color -> Formatter
