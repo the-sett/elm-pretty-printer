@@ -1,4 +1,4 @@
-module AlignmentCombinatorsTest exposing (..)
+module AlignmentTest exposing (..)
 
 import Expect exposing (Expectation)
 import Render
@@ -8,7 +8,7 @@ import Text exposing (..)
 
 suite : Test
 suite =
-    describe "Alignment Combinators"
+    describe "Alignment"
         [ describe "align"
             [ test "it renders doc with nesting lvl set to current column" <|
                 \_ ->

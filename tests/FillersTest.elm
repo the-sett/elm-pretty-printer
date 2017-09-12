@@ -1,4 +1,4 @@
-module FillerCombinatorsTest exposing (..)
+module FillersTest exposing (..)
 
 import Expect exposing (Expectation)
 import Render

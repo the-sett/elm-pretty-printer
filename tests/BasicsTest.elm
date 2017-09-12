@@ -1,4 +1,4 @@
-module BasicCombinatorsTest exposing (..)
+module BasicsTest exposing (..)
 
 import Expect exposing (Expectation)
 import Render

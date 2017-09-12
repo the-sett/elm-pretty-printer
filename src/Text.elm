@@ -38,7 +38,7 @@ import Utils
 -- RENDERING
 --    SimpleDoc(..), show
 --
--- UNDOCUMENTED?
+-- UNDOCUMENTED
 --    column, columns, nesting, width
 
 
@@ -203,6 +203,16 @@ space =
 semi : Doc
 semi =
     Char ';'
+
+
+dot : Doc
+dot =
+    Char '.'
+
+
+backslash : Doc
+backslash =
+    Char '\\'
 
 
 
