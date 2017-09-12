@@ -48,6 +48,12 @@ suite =
                     (text "hello" <$$> text "world")
                         |> Render.show
                         |> Expect.equal "hello\nworld"
+            , test "it puts elements right next to each other when undone by group" <|
+                \_ ->
+                    (text "hello" <$$> text "world")
+                        |> group
+                        |> Render.show
+                        |> Expect.equal "helloworld"
             ]
         , describe "<//>"
             [ test "it concats with a softbreak (directly next to each other if it fits)" <|

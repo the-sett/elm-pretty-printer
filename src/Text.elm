@@ -185,6 +185,16 @@ rbracket =
     Char ']'
 
 
+squote : Doc
+squote =
+    Char '\''
+
+
+dquote : Doc
+dquote =
+    Char '"'
+
+
 space : Doc
 space =
     Char ' '
@@ -195,23 +205,8 @@ semi =
     Char ';'
 
 
-parens : Doc -> Doc
-parens =
-    enclose lparen rparen
-
-
 
 -- COMBINATORS
-
-
-cat : List Doc -> Doc
-cat =
-    group << vcat
-
-
-enclose : Doc -> Doc -> Doc -> Doc
-enclose left right middle =
-    left <> middle <> right
 
 
 group : Doc -> Doc
@@ -276,9 +271,37 @@ hsep =
     fold (<+>)
 
 
+hcat : List Doc -> Doc
+hcat =
+    fold (<>)
+
+
 fillSep : List Doc -> Doc
 fillSep =
     fold (</>)
+
+
+fillCat : List Doc -> Doc
+fillCat =
+    fold (<//>)
+
+
+cat : List Doc -> Doc
+cat =
+    group << vcat
+
+
+punctuate : Doc -> List Doc -> List Doc
+punctuate separator docs =
+    case docs of
+        [] ->
+            []
+
+        [ doc ] ->
+            [ doc ]
+
+        head :: rest ->
+            (head <> separator) :: punctuate separator rest
 
 
 fold : (Doc -> Doc -> Doc) -> List Doc -> Doc
@@ -399,6 +422,81 @@ linebreak =
 hardline : Doc
 hardline =
     Line
+
+
+
+-- FILLERS
+
+
+fill : Int -> Doc -> Doc
+fill spacesToAdd doc =
+    let
+        addSpaces textWidth =
+            if textWidth >= spacesToAdd then
+                empty
+            else
+                text (Utils.spaces (spacesToAdd - textWidth))
+    in
+    width doc addSpaces
+
+
+fillBreak : Int -> Doc -> Doc
+fillBreak spacesToAdd doc =
+    let
+        addSpaces textWidth =
+            if textWidth > spacesToAdd then
+                nest spacesToAdd linebreak
+            else
+                text (Utils.spaces (spacesToAdd - textWidth))
+    in
+    width doc addSpaces
+
+
+width : Doc -> (Int -> Doc) -> Doc
+width doc addSpaces =
+    column
+        (\currCol1 ->
+            doc <> column (\currCol2 -> addSpaces (currCol2 - currCol1))
+        )
+
+
+
+-- BRACKETING
+
+
+enclose : Doc -> Doc -> Doc -> Doc
+enclose left right middle =
+    left <> middle <> right
+
+
+squotes : Doc -> Doc
+squotes =
+    enclose squote squote
+
+
+dquotes : Doc -> Doc
+dquotes =
+    enclose dquote dquote
+
+
+parens : Doc -> Doc
+parens =
+    enclose lparen rparen
+
+
+angles : Doc -> Doc
+angles =
+    enclose langle rangle
+
+
+brackets : Doc -> Doc
+brackets =
+    enclose lbracket rbracket
+
+
+braces : Doc -> Doc
+braces =
+    enclose lbrace rbrace
 
 
 
@@ -680,6 +778,43 @@ semiBraces =
 
 
 -- OTHER
+
+
+plain : Doc -> Doc
+plain doc =
+    case doc of
+        FlatAlt doc1 doc2 ->
+            FlatAlt (plain doc1) (plain doc2)
+
+        Cat doc1 doc2 ->
+            Cat (plain doc1) (plain doc2)
+
+        Nest n doc ->
+            Nest n (plain doc)
+
+        Union doc1 doc2 ->
+            Union (plain doc1) (plain doc2)
+
+        Color _ _ doc ->
+            plain doc
+
+        Bold _ doc ->
+            plain doc
+
+        Underline _ doc ->
+            plain doc
+
+        Column formDoc ->
+            Column (plain << formDoc)
+
+        Columns formDoc ->
+            Columns (plain << formDoc)
+
+        Nesting formDoc ->
+            Nesting (plain << formDoc)
+
+        _ ->
+            doc
 
 
 colorFormatter : Color -> Formatter
