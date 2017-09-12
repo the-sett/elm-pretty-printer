@@ -4,6 +4,44 @@ import Console as Ansi
 import Utils
 
 
+-- BASIC COMBINATORS
+--    empty, char, text, string, int, float, bool,
+--    (<>), nest, line, linebreak, group, softline,
+--    softbreak, hardline, flatAlt
+--
+-- ALIGNMENT COMBINATORS
+--    align, hang, indent, encloseSep, list,
+--    tupled, semiBraces
+--
+-- OPERATORS
+--    (<+>), (<$>), (</>), (<$$>), (<//>)
+--
+-- LIST COMBINATORS
+--    hsep, vsep, fillSep, sep, hcat, vcat, fillCat, cat, punctuate
+--
+-- FILLER COMBINATORS
+--    fill, fillBreak
+--
+-- BRACKETING COMBINATORS
+--    enclose, squotes, dquotes, parens, angles, braces, brackets
+--
+-- NAMED CHARACTER COMBINATORS
+--    lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket,
+--    squote, dquote, semi, colon, comma, space, dot, backslash, equals
+--
+-- FORMATTING COMBINATORS
+--    bold, debold, underline, deunderline
+--
+-- FORMATTING ELIMINATION COMBINATORS
+--    plain
+--
+-- RENDERING
+--    SimpleDoc(..), show
+--
+-- UNDOCUMENTED
+--    column, columns, nesting, width
+
+
 type alias Formatter =
     String -> String
 
@@ -82,6 +120,12 @@ infixr 5 </>
     doc1 <> softline <> doc2
 
 
+infixr 5 <//>
+(<//>) : Doc -> Doc -> Doc
+(<//>) doc1 doc2 =
+    doc1 <> softbreak <> doc2
+
+
 
 -- CHARS
 
@@ -121,28 +165,58 @@ rparen =
     Char ')'
 
 
+langle : Doc
+langle =
+    Char '<'
+
+
+rangle : Doc
+rangle =
+    Char '>'
+
+
+lbracket : Doc
+lbracket =
+    Char '['
+
+
+rbracket : Doc
+rbracket =
+    Char ']'
+
+
+squote : Doc
+squote =
+    Char '\''
+
+
+dquote : Doc
+dquote =
+    Char '"'
+
+
 space : Doc
 space =
     Char ' '
 
 
-parens : Doc -> Doc
-parens =
-    enclose lparen rparen
+semi : Doc
+semi =
+    Char ';'
+
+
+dot : Doc
+dot =
+    Char '.'
+
+
+backslash : Doc
+backslash =
+    Char '\\'
 
 
 
 -- COMBINATORS
-
-
-cat : List Doc -> Doc
-cat =
-    group << vcat
-
-
-enclose : Doc -> Doc -> Doc -> Doc
-enclose left right middle =
-    left <> middle <> right
 
 
 group : Doc -> Doc
@@ -207,9 +281,37 @@ hsep =
     fold (<+>)
 
 
+hcat : List Doc -> Doc
+hcat =
+    fold (<>)
+
+
 fillSep : List Doc -> Doc
 fillSep =
     fold (</>)
+
+
+fillCat : List Doc -> Doc
+fillCat =
+    fold (<//>)
+
+
+cat : List Doc -> Doc
+cat =
+    group << vcat
+
+
+punctuate : Doc -> List Doc -> List Doc
+punctuate separator docs =
+    case docs of
+        [] ->
+            []
+
+        [ doc ] ->
+            [ doc ]
+
+        head :: rest ->
+            (head <> separator) :: punctuate separator rest
 
 
 fold : (Doc -> Doc -> Doc) -> List Doc -> Doc
@@ -222,6 +324,11 @@ fold fn docs =
 -- BASIC COMBINATORS
 
 
+empty : Doc
+empty =
+    Empty
+
+
 char : Char -> Doc
 char input =
     case input of
@@ -230,6 +337,61 @@ char input =
 
         _ ->
             Char input
+
+
+text : String -> Doc
+text str =
+    case str of
+        "" ->
+            Empty
+
+        s ->
+            Text (String.length s) s
+
+
+
+-- string is like "text" but replaces '\n' by "line"
+-- | The document @(string s)@ concatenates all characters in @s@
+-- using @line@ for newline characters and @char@ for all other
+-- characters. It is used instead of 'text' whenever the text contains
+-- newline characters.
+
+
+string : String -> Doc
+string str =
+    case String.uncons str of
+        Nothing ->
+            empty
+
+        Just ( '\n', rest ) ->
+            line <> string rest
+
+        _ ->
+            let
+                ( xs, ys ) =
+                    Utils.break ((==) '\n') str
+            in
+            text xs <> string ys
+
+
+int : Int -> Doc
+int =
+    text << toString
+
+
+float : Float -> Doc
+float =
+    text << toString
+
+
+bool : Bool -> Doc
+bool =
+    text << toString
+
+
+flatAlt : Doc -> Doc -> Doc
+flatAlt =
+    FlatAlt
 
 
 column : (Int -> Doc) -> Doc
@@ -245,16 +407,6 @@ nesting fn =
 nest : Int -> Doc -> Doc
 nest n doc =
     Nest n doc
-
-
-text : String -> Doc
-text str =
-    case str of
-        "" ->
-            Empty
-
-        s ->
-            Text (String.length s) s
 
 
 line : Doc
@@ -282,9 +434,79 @@ hardline =
     Line
 
 
-empty : Doc
-empty =
-    Empty
+
+-- FILLERS
+
+
+fill : Int -> Doc -> Doc
+fill spacesToAdd doc =
+    let
+        addSpaces textWidth =
+            if textWidth >= spacesToAdd then
+                empty
+            else
+                text (Utils.spaces (spacesToAdd - textWidth))
+    in
+    width doc addSpaces
+
+
+fillBreak : Int -> Doc -> Doc
+fillBreak spacesToAdd doc =
+    let
+        addSpaces textWidth =
+            if textWidth > spacesToAdd then
+                nest spacesToAdd linebreak
+            else
+                text (Utils.spaces (spacesToAdd - textWidth))
+    in
+    width doc addSpaces
+
+
+width : Doc -> (Int -> Doc) -> Doc
+width doc addSpaces =
+    column
+        (\currCol1 ->
+            doc <> column (\currCol2 -> addSpaces (currCol2 - currCol1))
+        )
+
+
+
+-- BRACKETING
+
+
+enclose : Doc -> Doc -> Doc -> Doc
+enclose left right middle =
+    left <> middle <> right
+
+
+squotes : Doc -> Doc
+squotes =
+    enclose squote squote
+
+
+dquotes : Doc -> Doc
+dquotes =
+    enclose dquote dquote
+
+
+parens : Doc -> Doc
+parens =
+    enclose lparen rparen
+
+
+angles : Doc -> Doc
+angles =
+    enclose langle rangle
+
+
+brackets : Doc -> Doc
+brackets =
+    enclose lbracket rbracket
+
+
+braces : Doc -> Doc
+braces =
+    enclose lbrace rbrace
 
 
 
@@ -529,6 +751,80 @@ align doc =
             nesting
                 (\indentLvl -> nest (currentColumn - indentLvl) doc)
         )
+
+
+encloseSep : Doc -> Doc -> Doc -> List Doc -> Doc
+encloseSep left right sep docs =
+    case docs of
+        [] ->
+            left <> right
+
+        [ doc ] ->
+            left <> doc <> right
+
+        _ ->
+            let
+                separators =
+                    List.repeat (List.length docs) sep
+            in
+            align
+                (cat (List.map2 (<>) (left :: separators) docs) <> right)
+
+
+list : List Doc -> Doc
+list =
+    encloseSep lbracket rbracket comma
+
+
+tupled : List Doc -> Doc
+tupled =
+    encloseSep lparen rparen comma
+
+
+semiBraces : List Doc -> Doc
+semiBraces =
+    encloseSep lbrace rbrace semi
+
+
+
+-- OTHER
+
+
+plain : Doc -> Doc
+plain doc =
+    case doc of
+        FlatAlt doc1 doc2 ->
+            FlatAlt (plain doc1) (plain doc2)
+
+        Cat doc1 doc2 ->
+            Cat (plain doc1) (plain doc2)
+
+        Nest n doc ->
+            Nest n (plain doc)
+
+        Union doc1 doc2 ->
+            Union (plain doc1) (plain doc2)
+
+        Color _ _ doc ->
+            plain doc
+
+        Bold _ doc ->
+            plain doc
+
+        Underline _ doc ->
+            plain doc
+
+        Column formDoc ->
+            Column (plain << formDoc)
+
+        Columns formDoc ->
+            Columns (plain << formDoc)
+
+        Nesting formDoc ->
+            Nesting (plain << formDoc)
+
+        _ ->
+            doc
 
 
 colorFormatter : Color -> Formatter

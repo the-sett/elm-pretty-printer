@@ -248,4 +248,19 @@ suite =
                         in
                         Expect.equal expected (Render.show result)
                 ]
+        , describe "plain"
+            [ test "it removes all formatting from doc" <|
+                \_ ->
+                    let
+                        result =
+                            onBlue <|
+                                text "this is"
+                                    <+> red (underline (text "red underlined text"))
+                                    <+> bold (text "on a blue background")
+
+                        expected =
+                            "this is red underlined text on a blue background"
+                    in
+                    Expect.equal expected (Render.show (plain result))
+            ]
         ]
