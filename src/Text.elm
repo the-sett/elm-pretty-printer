@@ -4,44 +4,6 @@ import Console as Ansi
 import Utils
 
 
--- BASIC COMBINATORS
---    empty, char, text, string, int, float, bool,
---    (<>), nest, line, linebreak, group, softline,
---    softbreak, hardline, flatAlt
---
--- ALIGNMENT COMBINATORS
---    align, hang, indent, encloseSep, list,
---    tupled, semiBraces
---
--- OPERATORS
---    (<+>), (<$>), (</>), (<$$>), (<//>)
---
--- LIST COMBINATORS
---    hsep, vsep, fillSep, sep, hcat, vcat, fillCat, cat, punctuate
---
--- FILLER COMBINATORS
---    fill, fillBreak
---
--- BRACKETING COMBINATORS
---    enclose, squotes, dquotes, parens, angles, braces, brackets
---
--- NAMED CHARACTER COMBINATORS
---    lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket,
---    squote, dquote, semi, colon, comma, space, dot, backslash, equals
---
--- FORMATTING COMBINATORS
---    bold, debold, underline, deunderline
---
--- FORMATTING ELIMINATION COMBINATORS
---    plain
---
--- RENDERING
---    SimpleDoc(..), show
---
--- UNDOCUMENTED
---    column, columns, nesting, width
-
-
 type alias Formatter =
     String -> String
 

@@ -2,6 +2,7 @@ module ListCombinatorsTest exposing (..)
 
 import Console
 import Expect exposing (Expectation)
+import Main
 import Render
 import Test exposing (..)
 import Text exposing (..)
@@ -20,6 +21,15 @@ suite =
                     hsep (List.map text words)
                         |> Render.show
                         |> Expect.equal "how now brown cow?"
+            , test "same results through public api" <|
+                \_ ->
+                    let
+                        words =
+                            [ "how", "now", "brown", "cow?" ]
+                    in
+                    Main.concat Main.space (List.map text words)
+                        |> Render.show
+                        |> Expect.equal "how now brown cow?"
             ]
         , describe "fillSep"
             [ test "it concatenates documents horizontally with </>" <|
@@ -29,6 +39,15 @@ suite =
                             [ "this is a long string", "another string", "third string", "banana" ]
                     in
                     fillSep (List.map text words)
+                        |> Render.show
+                        |> Expect.equal "this is a long string\nanother string third string\nbanana"
+            , test "same results through public api" <|
+                \_ ->
+                    let
+                        words =
+                            [ "this is a long string", "another string", "third string", "banana" ]
+                    in
+                    Main.concat Main.softline (List.map text words)
                         |> Render.show
                         |> Expect.equal "this is a long string\nanother string third string\nbanana"
             ]
