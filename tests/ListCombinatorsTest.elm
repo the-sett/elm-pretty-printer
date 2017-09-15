@@ -2,7 +2,7 @@ module ListCombinatorsTest exposing (..)
 
 import Console
 import Expect exposing (Expectation)
-import Main
+import Main exposing ((|+))
 import Render
 import Test exposing (..)
 import Text exposing (..)
@@ -27,7 +27,7 @@ suite =
                         words =
                             [ "how", "now", "brown", "cow?" ]
                     in
-                    Main.concat Main.space (List.map text words)
+                    Main.join Main.space (List.map text words)
                         |> Render.show
                         |> Expect.equal "how now brown cow?"
             ]
@@ -36,20 +36,20 @@ suite =
                 \_ ->
                     let
                         words =
-                            [ "this is a long string", "another string", "third string", "banana" ]
+                            [ "where", "in", "the", "world", "is", "Carmen", "Sandiego?" ]
                     in
                     fillSep (List.map text words)
                         |> Render.show
-                        |> Expect.equal "this is a long string\nanother string third string\nbanana"
+                        |> Expect.equal "where in the world is Carmen\nSandiego?"
             , test "same results through public api" <|
                 \_ ->
                     let
                         words =
-                            [ "this is a long string", "another string", "third string", "banana" ]
+                            [ "where", "in", "the", "world", "is", "Carmen", "Sandiego?" ]
                     in
-                    Main.concat Main.softline (List.map text words)
+                    Main.join Main.softline (List.map text words)
                         |> Render.show
-                        |> Expect.equal "this is a long string\nanother string third string\nbanana"
+                        |> Expect.equal "where in the world is Carmen\nSandiego?"
             ]
         , describe "vsep"
             [ test "it concats doc elements vertically with <$>" <|
@@ -59,8 +59,32 @@ suite =
                             "text to lay out"
                                 |> String.words
                                 |> List.map text
+
+                        _ =
+                            Debug.log "PRIVATE: " (text "some" <+> vsep someText)
                     in
                     (text "some" <+> vsep someText)
+                        |> Render.show
+                        |> Expect.equal "some text\nto\nlay\nout"
+            , test "publicly" <|
+                \_ ->
+                    let
+                        someText =
+                            "text to lay out"
+                                |> String.words
+                                |> List.map text
+
+                        res =
+                            text "some"
+                                |+ space
+                                |+ Main.join Main.line someText
+
+                        _ =
+                            Debug.log "PUBLIC:" res
+                    in
+                    text "some"
+                        |+ space
+                        |+ Main.join Main.line someText
                         |> Render.show
                         |> Expect.equal "some text\nto\nlay\nout"
             , test "it can be used in combination with align" <|
@@ -90,7 +114,7 @@ suite =
                 \_ ->
                     let
                         words =
-                            [ "this is a long string", "another string", "third string", "banana" ]
+                            [ "where", "in", "the", "world", "is", "Carmen", "Sandiego?" ]
                     in
                     sep (List.map text words)
                         |> Render.show
@@ -152,11 +176,11 @@ suite =
                 \_ ->
                     let
                         words =
-                            [ "this is a long string", "another string", "third string", "banana" ]
+                            [ "what", "would", "you", "do", "if", "your", "son", "was", "at", "home?" ]
                     in
                     cat (List.map text words)
                         |> Render.show
-                        |> Expect.equal "this is a long string\nanother string\nthird string\nbanana"
+                        |> Expect.equal "what\nwould\nyou\ndo\nif\nyour\nson\nwas\nat\nhome?"
             ]
         , describe "punctuate"
             [ test "it concats all intersperses given document between elements" <|

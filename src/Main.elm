@@ -5,18 +5,31 @@ import Text exposing (Doc(..))
 import Utils
 
 
+-- TODO:
+--    Find way to discourage users from doing stuff like:
+--      append (text "hello\n") (text "world")
+--    Make it difficult for people to do things like that
+--    or provide a convenient way to append with lines
+
+
 append : Doc -> Doc -> Doc
 append doc1 doc2 =
     Cat doc1 doc2
 
 
-concat : Doc -> List Doc -> Doc
-concat sep docs =
-    let
-        appending doc acc =
-            append doc (append sep acc)
-    in
-    Utils.foldr1 appending docs
+(|+) : Doc -> Doc -> Doc
+(|+) =
+    append
+
+
+join : Doc -> List Doc -> Doc
+join sep =
+    concat << List.intersperse sep
+
+
+concat : List Doc -> Doc
+concat docs =
+    Utils.foldr1 append docs
         |> Maybe.withDefault Empty
 
 
@@ -38,3 +51,16 @@ group doc =
 line : Doc
 line =
     FlatAlt Line space
+
+
+
+-- potential ideas for joining elts
+--   withSpace
+--   withLine
+--   withSoftline etc.
+--
+--  unword
+--  unline
+--
+--
+-- union

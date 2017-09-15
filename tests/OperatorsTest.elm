@@ -29,18 +29,12 @@ suite =
                     (text "hello" <$> text "world")
                         |> Render.show
                         |> Expect.equal "hello\nworld"
-            ]
-        , describe "</>"
-            [ test "it concats with a softline (space if it will fit)" <|
+            , test "it puts a SPACE between elements when undone by group" <|
                 \_ ->
-                    (text "hello" </> text "world")
+                    (text "hello" <$> text "world")
+                        |> group
                         |> Render.show
                         |> Expect.equal "hello world"
-            , test "it concats with a softline (break if it will not fit on line)" <|
-                \_ ->
-                    (text "a really long string that might" </> text "not fit on one line")
-                        |> Render.show
-                        |> Expect.equal "a really long string that might\nnot fit on one line"
             ]
         , describe "<$$>"
             [ test "it concats with a linebreak in between - (advances to next line)" <|
@@ -55,13 +49,25 @@ suite =
                         |> Render.show
                         |> Expect.equal "helloworld"
             ]
+        , describe "</>"
+            [ test "it separates elements with a space if they can fit on same line" <|
+                \_ ->
+                    (text "hello" </> text "world")
+                        |> Render.show
+                        |> Expect.equal "hello world"
+            , test "it inserts a break if both will not fit on same line" <|
+                \_ ->
+                    (text "a really long string that might" </> text "not fit on one line")
+                        |> Render.show
+                        |> Expect.equal "a really long string that might\nnot fit on one line"
+            ]
         , describe "<//>"
-            [ test "it concats with a softbreak (directly next to each other if it fits)" <|
+            [ test "it separates elements with nothing if they will fit on same line" <|
                 \_ ->
                     (text "hello" <//> text "world")
                         |> Render.show
                         |> Expect.equal "helloworld"
-            , test "it concats with a linebreak if it will not fit on line" <|
+            , test "it advances second element to next line if it will not fit on same line" <|
                 \_ ->
                     (text "a really long string that might" <//> text "not fit on one line")
                         |> Render.show
