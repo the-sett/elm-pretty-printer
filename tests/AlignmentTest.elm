@@ -6,6 +6,10 @@ import Test exposing (..)
 import Text exposing (..)
 
 
+fillSep =
+    fold (</>)
+
+
 suite : Test
 suite =
     describe "Alignment"

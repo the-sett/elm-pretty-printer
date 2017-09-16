@@ -223,44 +223,31 @@ flatten doc =
             other
 
 
-sep : List Doc -> Doc
-sep =
-    group << vsep
 
-
-vsep : List Doc -> Doc
-vsep =
-    fold (<$>)
-
-
-vcat : List Doc -> Doc
-vcat =
-    fold (<$$>)
-
-
-hsep : List Doc -> Doc
-hsep =
-    fold (<+>)
-
-
-hcat : List Doc -> Doc
-hcat =
-    fold (<>)
-
-
-fillSep : List Doc -> Doc
-fillSep =
-    fold (</>)
-
-
-fillCat : List Doc -> Doc
-fillCat =
-    fold (<//>)
-
-
-cat : List Doc -> Doc
-cat =
-    group << vcat
+-- sep : List Doc -> Doc
+-- sep =
+--     group << vsep
+-- vsep : List Doc -> Doc
+-- vsep =
+--     fold (<$>)
+-- vcat : List Doc -> Doc
+-- vcat =
+--     fold (<$$>)
+-- hsep : List Doc -> Doc
+-- hsep =
+--     fold (<+>)
+-- hcat : List Doc -> Doc
+-- hcat =
+--     fold (<>)
+-- fillSep : List Doc -> Doc
+-- fillSep =
+--     fold (</>)
+-- fillCat : List Doc -> Doc
+-- fillCat =
+--     fold (<//>)
+-- cat : List Doc -> Doc
+-- cat =
+--     group << vcat
 
 
 punctuate : Doc -> List Doc -> List Doc
@@ -728,6 +715,9 @@ encloseSep left right sep docs =
             let
                 separators =
                     List.repeat (List.length docs) sep
+
+                cat =
+                    group << fold (<$$>)
             in
             align
                 (cat (List.map2 (<>) (left :: separators) docs) <> right)

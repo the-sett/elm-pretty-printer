@@ -5,21 +5,10 @@ import Text exposing (Doc(..))
 import Utils
 
 
--- TODO:
---    Find way to discourage users from doing stuff like:
---      append (text "hello\n") (text "world")
---    Make it difficult for people to do things like that
---    or provide a convenient way to append with lines
-
-
-append : Doc -> Doc -> Doc
-append doc1 doc2 =
-    Cat doc1 doc2
-
-
+infixr 6 |+
 (|+) : Doc -> Doc -> Doc
 (|+) =
-    append
+    Cat
 
 
 join : Doc -> List Doc -> Doc
@@ -29,8 +18,13 @@ join sep =
 
 concat : List Doc -> Doc
 concat docs =
-    Utils.foldr1 append docs
+    Utils.foldr1 (|+) docs
         |> Maybe.withDefault Empty
+
+
+group : Doc -> Doc
+group doc =
+    Union (Text.flatten doc) doc
 
 
 space : Doc
@@ -43,14 +37,42 @@ softline =
     group line
 
 
-group : Doc -> Doc
-group doc =
-    Union (Text.flatten doc) doc
+softbreak : Doc
+softbreak =
+    group linebreak
 
 
 line : Doc
 line =
     FlatAlt Line space
+
+
+linebreak : Doc
+linebreak =
+    FlatAlt Line Empty
+
+
+text : String -> Doc
+text str =
+    case str of
+        "" ->
+            Empty
+
+        s ->
+            if String.contains "\n" s then
+                Text.string s
+            else
+                Text (String.length s) s
+
+
+char : Char -> Doc
+char input =
+    case input of
+        '\n' ->
+            line
+
+        _ ->
+            Char input
 
 
 

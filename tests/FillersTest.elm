@@ -6,6 +6,10 @@ import Test exposing (..)
 import Text exposing (..)
 
 
+vcat =
+    fold (<$$>)
+
+
 suite : Test
 suite =
     describe "Filler Combinators"
