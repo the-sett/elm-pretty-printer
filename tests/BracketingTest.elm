@@ -1,9 +1,9 @@
 module BracketingTest exposing (..)
 
 import Expect exposing (Expectation)
+import Main exposing (..)
 import Render
 import Test exposing (..)
-import Text exposing (..)
 
 
 suite : Test
@@ -14,16 +14,17 @@ suite =
                 \_ ->
                     let
                         words =
-                            "wrapped in brackets"
+                            "wrapped in stuff"
                     in
-                    enclose lbracket rbracket (text words)
+                    surround (char '[') (char ')') (string words)
                         |> Render.show
-                        |> Expect.equal "[wrapped in brackets]"
+                        |> Expect.equal "[wrapped in stuff)"
             ]
         , describe "squotes"
             [ test "it surrounds the given doc in single quotes" <|
                 \_ ->
-                    squotes (text "wrapped in single quotes")
+                    string "wrapped in single quotes"
+                        |> squotes
                         |> Render.show
                         |> Expect.equal "'wrapped in single quotes'"
             ]
@@ -34,35 +35,40 @@ suite =
                         expected =
                             "\"wrapped in double quotes\""
                     in
-                    dquotes (text "wrapped in double quotes")
+                    string "wrapped in double quotes"
+                        |> dquotes
                         |> Render.show
                         |> Expect.equal expected
             ]
         , describe "parens"
             [ test "it surrounds the given doc in parens" <|
                 \_ ->
-                    parens (text "wrapped in parens")
+                    string "wrapped in parens"
+                        |> parens
                         |> Render.show
                         |> Expect.equal "(wrapped in parens)"
             ]
         , describe "angles"
             [ test "it surrounds given doc in angle brackets" <|
                 \_ ->
-                    angles (text "wrapped in angle brackets")
+                    string "wrapped in angle brackets"
+                        |> angles
                         |> Render.show
                         |> Expect.equal "<wrapped in angle brackets>"
             ]
         , describe "brackets"
             [ test "it surrounds given doc in square brackets" <|
                 \_ ->
-                    brackets (text "wrapped in square brackets")
+                    string "wrapped in square brackets"
+                        |> brackets
                         |> Render.show
                         |> Expect.equal "[wrapped in square brackets]"
             ]
         , describe "braces"
             [ test "it surrounds given doc in braces" <|
                 \_ ->
-                    braces (text "wrapped in braces")
+                    string "wrapped in braces"
+                        |> braces
                         |> Render.show
                         |> Expect.equal "{wrapped in braces}"
             ]

@@ -1,26 +1,26 @@
 module BasicsTest exposing (..)
 
 import Expect exposing (Expectation)
+import Main exposing (..)
 import Render
 import Test exposing (..)
-import Text exposing (..)
 
 
 suite : Test
 suite =
     describe "Basic Combinators"
-        [ describe "string"
-            [ test "it concats chars using line for newline characters" <|
-                \_ ->
-                    let
-                        input =
-                            "hello\nfriend"
-                    in
-                    string input
-                        |> Render.show
-                        |> Expect.equal input
-            ]
-        , describe "int"
+        [ -- describe "string"
+          --   [ test "it concats chars using line for newline characters" <|
+          --       \_ ->
+          --           let
+          --               input =
+          --                   "hello\nfriend"
+          --           in
+          --           string input
+          --               |> Render.show
+          --               |> Expect.equal input
+          --   ]
+          describe "int"
             [ test "it turns a literal integer to a text object w/ integer" <|
                 \_ ->
                     Expect.equal "102" (Render.show (int 102))
@@ -35,58 +35,43 @@ suite =
                 \_ ->
                     let
                         input =
-                            text "your answer was"
-                                <+> bool False
-                                <> text "!"
+                            string "your answer was "
+                                |+ bool False
+                                |+ char '!'
                     in
                     Expect.equal "your answer was False!" (Render.show input)
             ]
-        , describe "<>"
+        , describe "|+"
             [ test "it combines 2 docs without a space" <|
                 \_ ->
-                    let
-                        doc1 =
-                            text "Porcu"
-
-                        doc2 =
-                            text "pine"
-                    in
-                    (doc1 <> doc2)
+                    string "Porcu"
+                        |+ string "pine"
                         |> Render.show
                         |> Expect.equal "Porcupine"
             ]
         , describe "nest"
             [ test "it renders doc with nested level set to given int" <|
                 \_ ->
-                    let
-                        result =
-                            nest 2 (text "hello" <$> text "world") <$> text "!"
-                    in
-                    result
+                    nest 2 (string "hello" |+ line |+ string "world")
+                        |+ line
+                        |+ char '!'
                         |> Render.show
                         |> Expect.equal "hello\n  world\n!"
             ]
         , describe "group"
             [ test "it moves all elements onto the same line by replacing breaks w/ space" <|
                 \_ ->
-                    let
-                        elts =
-                            text "how now" <$> text "brown cow?"
-                    in
-                    group elts
+                    string "how now"
+                        |+ line
+                        |+ string "brown cow?"
+                        |> group
                         |> Render.show
                         |> Expect.equal "how now brown cow?"
             , test "it doesn't change anything if elements are already on same line" <|
                 \_ ->
-                    let
-                        sampleTxt =
-                            "how now brown cow?"
-
-                        elts =
-                            text sampleTxt
-                    in
-                    group elts
+                    string "how now brown cow?"
+                        |> group
                         |> Render.show
-                        |> Expect.equal sampleTxt
+                        |> Expect.equal "how now brown cow?"
             ]
         ]

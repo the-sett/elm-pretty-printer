@@ -3,7 +3,7 @@ module ListCombinatorsTest exposing (..)
 import Console
 import Debugger as Bug
 import Expect exposing (Expectation)
-import Main exposing ((|+))
+import Main exposing (..)
 import Render
 import Test exposing (..)
 
@@ -18,7 +18,7 @@ suite =
                         words =
                             [ "how", "now", "brown", "cow?" ]
                     in
-                    Main.join Main.space (List.map Main.text words)
+                    join space (List.map string words)
                         |> Render.show
                         |> Expect.equal "how now brown cow?"
             ]
@@ -29,7 +29,7 @@ suite =
                         words =
                             [ "where", "in", "the", "world", "is", "Carmen", "Sandiego?" ]
                     in
-                    Main.join Main.softline (List.map Main.text words)
+                    join softline (List.map string words)
                         |> Render.show
                         |> Expect.equal "where in the world is Carmen\nSandiego?"
             ]
@@ -38,15 +38,15 @@ suite =
                 \_ ->
                     let
                         someText =
-                            "text to lay out"
+                            "string to lay out"
                                 |> String.words
-                                |> List.map Main.text
+                                |> List.map string
                     in
-                    Main.text "some"
-                        |+ Main.space
-                        |+ Main.join Main.line someText
+                    string "some"
+                        |+ space
+                        |+ join line someText
                         |> Render.show
-                        |> Expect.equal "some text\nto\nlay\nout"
+                        |> Expect.equal "some string\nto\nlay\nout"
             ]
         , describe "sep"
             [ test "it puts elements on same line, separated by space - PUBLIC" <|
@@ -54,10 +54,10 @@ suite =
                     let
                         elements =
                             [ "how", "now", "brown", "cow?" ]
-                                |> List.map Main.text
+                                |> List.map string
                     in
-                    Main.join Main.line elements
-                        |> Main.group
+                    join line elements
+                        |> group
                         |> Render.show
                         |> Expect.equal "how now brown cow?"
             , test "if it cannot put them all on same line, it puts them on separate lines - PUBLIC" <|
@@ -66,8 +66,8 @@ suite =
                         words =
                             [ "where", "in", "the", "world", "is", "Carmen", "Sandiego?" ]
                     in
-                    Main.join Main.line (List.map Main.text words)
-                        |> Main.group
+                    join line (List.map string words)
+                        |> group
                         |> Render.show
                         |> Expect.equal (String.join "\n" words)
             ]
@@ -78,7 +78,7 @@ suite =
                         words =
                             [ "hello", "world" ]
                     in
-                    Main.concat (List.map Main.text words)
+                    Main.concat (List.map string words)
                         |> Render.show
                         |> Expect.equal "helloworld"
             ]
@@ -89,7 +89,7 @@ suite =
                         words =
                             [ "how", "now", "brown", "cow?" ]
                     in
-                    Main.join Main.linebreak (List.map Main.text words)
+                    join linebreak (List.map string words)
                         |> Render.show
                         |> Expect.equal (String.join "\n" words)
             ]
@@ -100,7 +100,7 @@ suite =
                         words =
                             [ "hello", "world" ]
                     in
-                    Main.join Main.softbreak (List.map Main.text words)
+                    join softbreak (List.map string words)
                         |> Render.show
                         |> Expect.equal "helloworld"
             , test "it fits as many as it can on one line - PUBLIC" <|
@@ -109,7 +109,7 @@ suite =
                         words =
                             [ "this is a long string", "another string", "third string", "banana" ]
                     in
-                    Main.join Main.softbreak (List.map Main.text words)
+                    join softbreak (List.map string words)
                         |> Render.show
                         |> Expect.equal "this is a long string\nanother stringthird stringbanana"
             ]
@@ -120,8 +120,8 @@ suite =
                         words =
                             [ "hello", "world" ]
                     in
-                    Main.join Main.linebreak (List.map Main.text words)
-                        |> Main.group
+                    join linebreak (List.map string words)
+                        |> group
                         |> Render.show
                         |> Expect.equal "helloworld"
             , test "concats vertically if it does not - PUBLIC" <|
@@ -130,8 +130,8 @@ suite =
                         words =
                             [ "what", "would", "you", "do", "if", "your", "son", "was", "at", "home?" ]
                     in
-                    Main.join Main.linebreak (List.map Main.text words)
-                        |> Main.group
+                    join linebreak (List.map string words)
+                        |> group
                         |> Render.show
                         |> Expect.equal "what\nwould\nyou\ndo\nif\nyour\nson\nwas\nat\nhome?"
             ]
@@ -142,7 +142,7 @@ suite =
                         words =
                             [ "how", "now", "brown", "cow?" ]
                     in
-                    Main.join (Main.char ',') (List.map Main.text words)
+                    join (char ',') (List.map string words)
                         |> Render.show
                         |> Expect.equal "how,now,brown,cow?"
             ]

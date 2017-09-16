@@ -2,9 +2,9 @@ module FormattingTest exposing (..)
 
 import Console as Ansi
 import Expect exposing (Expectation)
+import Main exposing (..)
 import Render
 import Test exposing (..)
-import Text exposing (..)
 
 
 suite : Test
@@ -17,12 +17,15 @@ suite =
                     \_ ->
                         let
                             result =
-                                red (text "Red")
-                                    <> comma
-                                    <+> white (text "white")
-                                    <+> text "and"
-                                    <+> blue (text "blue")
-                                    <> char '!'
+                                red (string "Red")
+                                    |+ char ','
+                                    |+ space
+                                    |+ white (string "white")
+                                    |+ space
+                                    |+ string "and"
+                                    |+ space
+                                    |+ blue (string "blue")
+                                    |+ char '!'
 
                             expected =
                                 Ansi.red "Red"
@@ -37,7 +40,12 @@ suite =
                     \_ ->
                         let
                             result =
-                                blue (text "Nested" <+> yellow (text "colors") <+> text "example")
+                                blue <|
+                                    string "Nested"
+                                        |+ space
+                                        |+ yellow (string "colors")
+                                        |+ space
+                                        |+ string "example"
 
                             expected =
                                 Ansi.blue "Nested" ++ Ansi.yellow " colors" ++ Ansi.blue " example"
@@ -50,12 +58,15 @@ suite =
                     \_ ->
                         let
                             result =
-                                onRed (text "Red")
-                                    <> comma
-                                    <+> onWhite (text "white")
-                                    <+> text "and"
-                                    <+> onBlue (text "blue")
-                                    <> char '!'
+                                onRed (string "Red")
+                                    |+ char ','
+                                    |+ space
+                                    |+ onWhite (string "white")
+                                    |+ space
+                                    |+ string "and"
+                                    |+ space
+                                    |+ onBlue (string "blue")
+                                    |+ char '!'
 
                             expected =
                                 Ansi.bgRed "Red"
@@ -70,7 +81,11 @@ suite =
                     \_ ->
                         let
                             result =
-                                onBlue (text "Nested" <+> onYellow (text "colors") <+> text "example")
+                                onBlue <|
+                                    string "Nested "
+                                        |+ onYellow (string "colors")
+                                        |+ space
+                                        |+ string "example"
 
                             expected =
                                 Ansi.bgBlue "Nested " ++ Ansi.bgYellow "colors" ++ Ansi.bgBlue " example"
@@ -83,9 +98,10 @@ suite =
                     \_ ->
                         let
                             result =
-                                text "We can do"
-                                    <+> bold (text "boldness")
-                                    <+> text "if your terminal supports it."
+                                string "We can do "
+                                    |+ bold (string "boldness")
+                                    |+ space
+                                    |+ string "if your terminal supports it."
 
                             expected =
                                 "We can do "
@@ -97,9 +113,10 @@ suite =
                     \_ ->
                         let
                             result =
-                                text "We can do"
-                                    <+> debold (bold (text "boldness"))
-                                    <+> text "if your terminal supports it."
+                                string "We can do "
+                                    |+ debold (bold (string "boldness"))
+                                    |+ space
+                                    |+ string "if your terminal supports it."
 
                             expected =
                                 "We can do boldness if your terminal supports it."
@@ -111,12 +128,12 @@ suite =
                             result =
                                 debold <|
                                     hang 2 <|
-                                        text "I had some"
-                                            <+> bold (text "bold text")
-                                            <> comma
-                                            <+> text "but not"
-                                            <+> bold (text "anymore")
-                                            <> text "!"
+                                        string "I had some "
+                                            |+ bold (string "bold text")
+                                            |+ char ','
+                                            |+ string " but not "
+                                            |+ bold (string "anymore")
+                                            |+ char '!'
 
                             expected =
                                 "I had some bold text, but not anymore!"
@@ -129,9 +146,10 @@ suite =
                     \_ ->
                         let
                             result =
-                                text "We can do"
-                                    <+> underline (text "underlining")
-                                    <+> text "if your terminal supports it."
+                                string "We can do "
+                                    |+ underline (string "underlining")
+                                    |+ space
+                                    |+ string "if your terminal supports it."
 
                             expected =
                                 "We can do "
@@ -143,9 +161,10 @@ suite =
                     \_ ->
                         let
                             result =
-                                text "We can do"
-                                    <+> deunderline (underline (text "underlining"))
-                                    <+> text "if your terminal supports it."
+                                string "We can do "
+                                    |+ deunderline (underline (string "underlining"))
+                                    |+ space
+                                    |+ string "if your terminal supports it."
 
                             expected =
                                 "We can do underlining if your terminal supports it."
@@ -157,12 +176,12 @@ suite =
                             result =
                                 deunderline <|
                                     hang 3 <|
-                                        text "I had some"
-                                            <+> underline (text "underlined text")
-                                            <> comma
-                                            <+> text "but not"
-                                            <+> underline (text "anymore")
-                                            <> text "!"
+                                        string "I had some "
+                                            |+ underline (string "underlined text")
+                                            |+ char ','
+                                            |+ string " but not "
+                                            |+ underline (string "anymore")
+                                            |+ char '!'
 
                             expected =
                                 "I had some underlined text, but not anymore!"
@@ -175,9 +194,9 @@ suite =
                     \_ ->
                         let
                             result =
-                                text "We can do"
-                                    <+> bold (underline (text "underlining and boldness"))
-                                    <+> text "if your terminal supports it."
+                                string "We can do "
+                                    |+ bold (underline (string "underlining and boldness"))
+                                    |+ string " if your terminal supports it."
 
                             expected =
                                 "We can do "
@@ -189,9 +208,9 @@ suite =
                     \_ ->
                         let
                             result =
-                                text "this is"
-                                    <+> bold (blue (text "some bold blue"))
-                                    <+> text "text"
+                                string "this is "
+                                    |+ bold (blue (string "some bold blue"))
+                                    |+ string " text"
 
                             expected =
                                 "this is "
@@ -204,9 +223,11 @@ suite =
                         let
                             result =
                                 onWhite <|
-                                    text "this is"
-                                        <+> red (text "red text")
-                                        <+> text "on a white background"
+                                    string "this is"
+                                        |+ space
+                                        |+ red (string "red text")
+                                        |+ space
+                                        |+ string "on a white background"
 
                             expected =
                                 Ansi.bgWhite <|
@@ -220,15 +241,16 @@ suite =
                         let
                             result =
                                 onCyan <|
-                                    text "this is"
-                                        <+> bold (text "bold text")
-                                        <+> text "on a cyan background"
+                                    string "this is "
+                                        |+ bold (string "bold text")
+                                        |+ space
+                                        |+ string "on a cyan background"
 
                             expected =
                                 Ansi.bgCyan <|
                                     "this is "
                                         ++ Ansi.bold "bold text"
-                                        ++ " on a white background"
+                                        ++ " on a cyan background"
                         in
                         Expect.equal expected (Render.show result)
                 , test "it can do underline with background color and foreground color" <|
@@ -236,14 +258,16 @@ suite =
                         let
                             result =
                                 onBlue <|
-                                    text "this is"
-                                        <+> black (underline (text "underlined text"))
-                                        <+> text "on a blue background"
+                                    string "this is"
+                                        |+ space
+                                        |+ black (underline (string "black underlined text"))
+                                        |+ space
+                                        |+ string "on a blue background"
 
                             expected =
                                 Ansi.bgBlue <|
                                     "this is "
-                                        ++ Ansi.black (Ansi.underline "underlined text")
+                                        ++ Ansi.black (Ansi.underline "black underlined text")
                                         ++ " on a blue background"
                         in
                         Expect.equal expected (Render.show result)
@@ -254,9 +278,10 @@ suite =
                     let
                         result =
                             onBlue <|
-                                text "this is"
-                                    <+> red (underline (text "red underlined text"))
-                                    <+> bold (text "on a blue background")
+                                string "this is "
+                                    |+ red (underline (string "red underlined text"))
+                                    |+ space
+                                    |+ bold (string "on a blue background")
 
                         expected =
                             "this is red underlined text on a blue background"

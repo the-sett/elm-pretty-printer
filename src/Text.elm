@@ -223,46 +223,6 @@ flatten doc =
             other
 
 
-
--- sep : List Doc -> Doc
--- sep =
---     group << vsep
--- vsep : List Doc -> Doc
--- vsep =
---     fold (<$>)
--- vcat : List Doc -> Doc
--- vcat =
---     fold (<$$>)
--- hsep : List Doc -> Doc
--- hsep =
---     fold (<+>)
--- hcat : List Doc -> Doc
--- hcat =
---     fold (<>)
--- fillSep : List Doc -> Doc
--- fillSep =
---     fold (</>)
--- fillCat : List Doc -> Doc
--- fillCat =
---     fold (<//>)
--- cat : List Doc -> Doc
--- cat =
---     group << vcat
-
-
-punctuate : Doc -> List Doc -> List Doc
-punctuate separator docs =
-    case docs of
-        [] ->
-            []
-
-        [ doc ] ->
-            [ doc ]
-
-        head :: rest ->
-            (head <> separator) :: punctuate separator rest
-
-
 fold : (Doc -> Doc -> Doc) -> List Doc -> Doc
 fold fn docs =
     Utils.foldr1 fn docs
@@ -296,31 +256,6 @@ text str =
 
         s ->
             Text (String.length s) s
-
-
-
--- string is like "text" but replaces '\n' by "line"
--- | The document @(string s)@ concatenates all characters in @s@
--- using @line@ for newline characters and @char@ for all other
--- characters. It is used instead of 'text' whenever the text contains
--- newline characters.
-
-
-string : String -> Doc
-string str =
-    case String.uncons str of
-        Nothing ->
-            empty
-
-        Just ( '\n', rest ) ->
-            line <> string rest
-
-        _ ->
-            let
-                ( xs, ys ) =
-                    Utils.break ((==) '\n') str
-            in
-            text xs <> string ys
 
 
 int : Int -> Doc
@@ -381,81 +316,6 @@ linebreak =
 hardline : Doc
 hardline =
     Line
-
-
-
--- FILLERS
-
-
-fill : Int -> Doc -> Doc
-fill spacesToAdd doc =
-    let
-        addSpaces textWidth =
-            if textWidth >= spacesToAdd then
-                empty
-            else
-                text (Utils.spaces (spacesToAdd - textWidth))
-    in
-    width doc addSpaces
-
-
-fillBreak : Int -> Doc -> Doc
-fillBreak spacesToAdd doc =
-    let
-        addSpaces textWidth =
-            if textWidth > spacesToAdd then
-                nest spacesToAdd linebreak
-            else
-                text (Utils.spaces (spacesToAdd - textWidth))
-    in
-    width doc addSpaces
-
-
-width : Doc -> (Int -> Doc) -> Doc
-width doc addSpaces =
-    column
-        (\currCol1 ->
-            doc <> column (\currCol2 -> addSpaces (currCol2 - currCol1))
-        )
-
-
-
--- BRACKETING
-
-
-enclose : Doc -> Doc -> Doc -> Doc
-enclose left right middle =
-    left <> middle <> right
-
-
-squotes : Doc -> Doc
-squotes =
-    enclose squote squote
-
-
-dquotes : Doc -> Doc
-dquotes =
-    enclose dquote dquote
-
-
-parens : Doc -> Doc
-parens =
-    enclose lparen rparen
-
-
-angles : Doc -> Doc
-angles =
-    enclose langle rangle
-
-
-brackets : Doc -> Doc
-brackets =
-    enclose lbracket rbracket
-
-
-braces : Doc -> Doc
-braces =
-    enclose lbrace rbrace
 
 
 
@@ -677,69 +537,6 @@ deunderline doc =
 
         _ ->
             doc
-
-
-
--- ALIGNMENT
-
-
-indent : Int -> Doc -> Doc
-indent spaces doc =
-    hang spaces (text (Utils.spaces spaces) <> doc)
-
-
-hang : Int -> Doc -> Doc
-hang n doc =
-    align (nest n doc)
-
-
-align : Doc -> Doc
-align doc =
-    column
-        (\currentColumn ->
-            nesting
-                (\indentLvl -> nest (currentColumn - indentLvl) doc)
-        )
-
-
-encloseSep : Doc -> Doc -> Doc -> List Doc -> Doc
-encloseSep left right sep docs =
-    case docs of
-        [] ->
-            left <> right
-
-        [ doc ] ->
-            left <> doc <> right
-
-        _ ->
-            let
-                separators =
-                    List.repeat (List.length docs) sep
-
-                cat =
-                    group << fold (<$$>)
-            in
-            align
-                (cat (List.map2 (<>) (left :: separators) docs) <> right)
-
-
-list : List Doc -> Doc
-list =
-    encloseSep lbracket rbracket comma
-
-
-tupled : List Doc -> Doc
-tupled =
-    encloseSep lparen rparen comma
-
-
-semiBraces : List Doc -> Doc
-semiBraces =
-    encloseSep lbrace rbrace semi
-
-
-
--- OTHER
 
 
 plain : Doc -> Doc

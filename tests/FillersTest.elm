@@ -1,13 +1,9 @@
 module FillersTest exposing (..)
 
 import Expect exposing (Expectation)
+import Main exposing (..)
 import Render
 import Test exposing (..)
-import Text exposing (..)
-
-
-vcat =
-    fold (<$$>)
 
 
 suite : Test
@@ -24,14 +20,18 @@ suite =
                             ]
 
                         ptype ( name, tipe ) =
-                            fill 6 (text name) <+> text ":" <+> text tipe
+                            fill 6 (string name)
+                                |+ space
+                                |+ char ':'
+                                |+ space
+                                |+ string tipe
 
                         expected =
                             "let empty  : Doc\n    nest   : Int -> Doc -> Doc\n    linebreak : Doc"
                     in
-                    vcat (List.map ptype types)
-                        |> align
-                        |> (<+>) (text "let")
+                    string "let"
+                        |+ space
+                        |+ align (join linebreak (List.map ptype types))
                         |> Render.show
                         |> Expect.equal expected
             ]
@@ -46,14 +46,18 @@ suite =
                             ]
 
                         ptype ( name, tipe ) =
-                            fillBreak 6 (text name) <+> text ":" <+> text tipe
+                            fillBreak 6 (string name)
+                                |+ space
+                                |+ char ':'
+                                |+ space
+                                |+ string tipe
 
                         expected =
                             "let empty  : Doc\n    nest   : Int -> Doc -> Doc\n    linebreak\n           : Doc"
                     in
-                    vcat (List.map ptype types)
-                        |> align
-                        |> (<+>) (text "let")
+                    string "let"
+                        |+ space
+                        |+ align (join linebreak (List.map ptype types))
                         |> Render.show
                         |> Expect.equal expected
             ]
