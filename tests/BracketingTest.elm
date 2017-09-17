@@ -1,8 +1,7 @@
 module BracketingTest exposing (..)
 
+import Doc exposing (..)
 import Expect exposing (Expectation)
-import Main exposing (..)
-import Render
 import Test exposing (..)
 
 
@@ -17,7 +16,7 @@ suite =
                             "wrapped in stuff"
                     in
                     surround (char '[') (char ')') (string words)
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "[wrapped in stuff)"
             ]
         , describe "squotes"
@@ -25,7 +24,7 @@ suite =
                 \_ ->
                     string "wrapped in single quotes"
                         |> squotes
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "'wrapped in single quotes'"
             ]
         , describe "dquotes"
@@ -37,7 +36,7 @@ suite =
                     in
                     string "wrapped in double quotes"
                         |> dquotes
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal expected
             ]
         , describe "parens"
@@ -45,7 +44,7 @@ suite =
                 \_ ->
                     string "wrapped in parens"
                         |> parens
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "(wrapped in parens)"
             ]
         , describe "angles"
@@ -53,7 +52,7 @@ suite =
                 \_ ->
                     string "wrapped in angle brackets"
                         |> angles
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "<wrapped in angle brackets>"
             ]
         , describe "brackets"
@@ -61,7 +60,7 @@ suite =
                 \_ ->
                     string "wrapped in square brackets"
                         |> brackets
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "[wrapped in square brackets]"
             ]
         , describe "braces"
@@ -69,7 +68,7 @@ suite =
                 \_ ->
                     string "wrapped in braces"
                         |> braces
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "{wrapped in braces}"
             ]
         ]

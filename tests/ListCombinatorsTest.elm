@@ -1,10 +1,8 @@
 module ListCombinatorsTest exposing (..)
 
 import Console
-import Debugger as Bug
+import Doc exposing (..)
 import Expect exposing (Expectation)
-import Main exposing (..)
-import Render
 import Test exposing (..)
 
 
@@ -19,7 +17,7 @@ suite =
                             [ "how", "now", "brown", "cow?" ]
                     in
                     join space (List.map string words)
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "how now brown cow?"
             ]
         , describe "fillSep"
@@ -30,7 +28,7 @@ suite =
                             [ "where", "in", "the", "world", "is", "Carmen", "Sandiego?" ]
                     in
                     join softline (List.map string words)
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "where in the world is Carmen\nSandiego?"
             ]
         , describe "vsep"
@@ -45,7 +43,7 @@ suite =
                     string "some"
                         |+ space
                         |+ join line someText
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "some string\nto\nlay\nout"
             ]
         , describe "sep"
@@ -58,7 +56,7 @@ suite =
                     in
                     join line elements
                         |> group
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "how now brown cow?"
             , test "if it cannot put them all on same line, it puts them on separate lines - PUBLIC" <|
                 \_ ->
@@ -68,7 +66,7 @@ suite =
                     in
                     join line (List.map string words)
                         |> group
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal (String.join "\n" words)
             ]
         , describe "hcat"
@@ -78,8 +76,8 @@ suite =
                         words =
                             [ "hello", "world" ]
                     in
-                    Main.concat (List.map string words)
-                        |> Render.show
+                    Doc.concat (List.map string words)
+                        |> Doc.toString
                         |> Expect.equal "helloworld"
             ]
         , describe "vcat"
@@ -90,7 +88,7 @@ suite =
                             [ "how", "now", "brown", "cow?" ]
                     in
                     join linebreak (List.map string words)
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal (String.join "\n" words)
             ]
         , describe "fillCat"
@@ -101,7 +99,7 @@ suite =
                             [ "hello", "world" ]
                     in
                     join softbreak (List.map string words)
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "helloworld"
             , test "it fits as many as it can on one line - PUBLIC" <|
                 \_ ->
@@ -110,7 +108,7 @@ suite =
                             [ "this is a long string", "another string", "third string", "banana" ]
                     in
                     join softbreak (List.map string words)
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "this is a long string\nanother stringthird stringbanana"
             ]
         , describe "cat"
@@ -122,7 +120,7 @@ suite =
                     in
                     join linebreak (List.map string words)
                         |> group
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "helloworld"
             , test "concats vertically if it does not - PUBLIC" <|
                 \_ ->
@@ -132,7 +130,7 @@ suite =
                     in
                     join linebreak (List.map string words)
                         |> group
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "what\nwould\nyou\ndo\nif\nyour\nson\nwas\nat\nhome?"
             ]
         , describe "punctuate"
@@ -143,7 +141,7 @@ suite =
                             [ "how", "now", "brown", "cow?" ]
                     in
                     join (char ',') (List.map string words)
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "how,now,brown,cow?"
             ]
         ]

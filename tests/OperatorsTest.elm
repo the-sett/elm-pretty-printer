@@ -1,8 +1,7 @@
 module OperatorsTest exposing (..)
 
+import Doc exposing (..)
 import Expect exposing (Expectation)
-import Main exposing (..)
-import Render
 import Test exposing (..)
 
 
@@ -15,7 +14,7 @@ suite =
                     string "hello"
                         |+ line
                         |+ string "world"
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "hello\nworld"
             , test "it puts a SPACE between elements when undone by group" <|
                 \_ ->
@@ -23,7 +22,7 @@ suite =
                         |+ line
                         |+ string "world"
                         |> group
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "hello world"
             ]
         , describe "<$$> - linebreak"
@@ -32,7 +31,7 @@ suite =
                     string "hello"
                         |+ linebreak
                         |+ string "world"
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "hello\nworld"
             , test "it puts elements right next to each other when undone by group" <|
                 \_ ->
@@ -40,7 +39,7 @@ suite =
                         |+ linebreak
                         |+ string "world"
                         |> group
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "helloworld"
             ]
         , describe "</> - softline"
@@ -49,14 +48,14 @@ suite =
                     string "hello"
                         |+ softline
                         |+ string "world"
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "hello world"
             , test "it inserts a break if both will not fit on same line" <|
                 \_ ->
                     string "a really long string that might"
                         |+ softline
                         |+ string "not fit on one line"
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "a really long string that might\nnot fit on one line"
             ]
         , describe "<//> - softbreak"
@@ -65,14 +64,14 @@ suite =
                     string "hello"
                         |+ softbreak
                         |+ string "world"
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "helloworld"
             , test "it advances second element to next line if it will not fit on same line" <|
                 \_ ->
                     string "a really long string that might"
                         |+ softbreak
                         |+ string "not fit on one line"
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "a really long string that might\nnot fit on one line"
             ]
         ]

@@ -1,9 +1,8 @@
 module FormattingTest exposing (..)
 
 import Console as Ansi
+import Doc exposing (..)
 import Expect exposing (Expectation)
-import Main exposing (..)
-import Render
 import Test exposing (..)
 
 
@@ -35,7 +34,7 @@ suite =
                                     ++ Ansi.blue "blue"
                                     ++ "!"
                         in
-                        Expect.equal expected (Render.show result)
+                        Expect.equal expected (Doc.toString result)
                 , test "colors can be nested" <|
                     \_ ->
                         let
@@ -50,7 +49,7 @@ suite =
                             expected =
                                 Ansi.blue "Nested" ++ Ansi.yellow " colors" ++ Ansi.blue " example"
                         in
-                        Expect.equal expected (Render.show result)
+                        Expect.equal expected (Doc.toString result)
                 ]
         , skip <|
             describe "background colors"
@@ -76,7 +75,7 @@ suite =
                                     ++ Ansi.bgBlue "blue"
                                     ++ "!"
                         in
-                        Expect.equal expected (Render.show result)
+                        Expect.equal expected (Doc.toString result)
                 , test "colors can be nested" <|
                     \_ ->
                         let
@@ -90,7 +89,7 @@ suite =
                             expected =
                                 Ansi.bgBlue "Nested " ++ Ansi.bgYellow "colors" ++ Ansi.bgBlue " example"
                         in
-                        Expect.equal expected (Render.show result)
+                        Expect.equal expected (Doc.toString result)
                 ]
         , skip <|
             describe "text intensity"
@@ -108,7 +107,7 @@ suite =
                                     ++ Ansi.bold "boldness"
                                     ++ " if your terminal supports it."
                         in
-                        Expect.equal expected (Render.show result)
+                        Expect.equal expected (Doc.toString result)
                 , test "it can debold text" <|
                     \_ ->
                         let
@@ -121,7 +120,7 @@ suite =
                             expected =
                                 "We can do boldness if your terminal supports it."
                         in
-                        Expect.equal expected (Render.show result)
+                        Expect.equal expected (Doc.toString result)
                 , test "it can debold text with sporadic boldness and other formatting" <|
                     \_ ->
                         let
@@ -138,7 +137,7 @@ suite =
                             expected =
                                 "I had some bold text, but not anymore!"
                         in
-                        Expect.equal expected (Render.show result)
+                        Expect.equal expected (Doc.toString result)
                 ]
         , skip <|
             describe "underlining"
@@ -156,7 +155,7 @@ suite =
                                     ++ Ansi.underline "underlining"
                                     ++ " if your terminal supports it."
                         in
-                        Expect.equal expected (Render.show result)
+                        Expect.equal expected (Doc.toString result)
                 , test "it can deunderline text" <|
                     \_ ->
                         let
@@ -169,7 +168,7 @@ suite =
                             expected =
                                 "We can do underlining if your terminal supports it."
                         in
-                        Expect.equal expected (Render.show result)
+                        Expect.equal expected (Doc.toString result)
                 , test "it can deunderline with sporadic underlining and other formatting" <|
                     \_ ->
                         let
@@ -186,7 +185,7 @@ suite =
                             expected =
                                 "I had some underlined text, but not anymore!"
                         in
-                        Expect.equal expected (Render.show result)
+                        Expect.equal expected (Doc.toString result)
                 ]
         , skip <|
             describe "combinations of formatting"
@@ -203,7 +202,7 @@ suite =
                                     ++ Ansi.bold (Ansi.underline "underlining and boldness")
                                     ++ " if your terminal supports it."
                         in
-                        Expect.equal expected (Render.show result)
+                        Expect.equal expected (Doc.toString result)
                 , test "it can do boldness with foreground color" <|
                     \_ ->
                         let
@@ -217,7 +216,7 @@ suite =
                                     ++ Ansi.bold (Ansi.blue "some bold blue")
                                     ++ " text"
                         in
-                        Expect.equal expected (Render.show result)
+                        Expect.equal expected (Doc.toString result)
                 , test "it can do foreground color and background color" <|
                     \_ ->
                         let
@@ -235,7 +234,7 @@ suite =
                                         ++ Ansi.red "red text"
                                         ++ " on a white background"
                         in
-                        Expect.equal expected (Render.show result)
+                        Expect.equal expected (Doc.toString result)
                 , test "it can do bold with background color" <|
                     \_ ->
                         let
@@ -252,7 +251,7 @@ suite =
                                         ++ Ansi.bold "bold text"
                                         ++ " on a cyan background"
                         in
-                        Expect.equal expected (Render.show result)
+                        Expect.equal expected (Doc.toString result)
                 , test "it can do underline with background color and foreground color" <|
                     \_ ->
                         let
@@ -270,7 +269,7 @@ suite =
                                         ++ Ansi.black (Ansi.underline "black underlined text")
                                         ++ " on a blue background"
                         in
-                        Expect.equal expected (Render.show result)
+                        Expect.equal expected (Doc.toString result)
                 ]
         , describe "plain"
             [ test "it removes all formatting from doc" <|
@@ -286,6 +285,6 @@ suite =
                         expected =
                             "this is red underlined text on a blue background"
                     in
-                    Expect.equal expected (Render.show (plain result))
+                    Expect.equal expected (Doc.toString (plain result))
             ]
         ]

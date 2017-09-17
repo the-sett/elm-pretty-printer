@@ -1,8 +1,7 @@
 module AlignmentTest exposing (..)
 
+import Doc exposing (..)
 import Expect exposing (Expectation)
-import Main exposing (..)
-import Render
 import Test exposing (..)
 
 
@@ -14,7 +13,7 @@ suite =
                 \_ ->
                     string "hi "
                         |+ align (string "nice" |+ line |+ string "world")
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "hi nice\n   world"
             ]
         , describe "hang"
@@ -29,7 +28,7 @@ suite =
                         |> List.map string
                         |> join softline
                         |> hang 4
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "the hang combinator indents\n    these words !"
             ]
         , describe "indent"
@@ -46,7 +45,7 @@ suite =
                             "    the indent combinator\n    indents these words !"
                     in
                     indent 4 elements
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal expected
             ]
         , describe "encloseSep"
@@ -55,7 +54,7 @@ suite =
                     [ "one", "1", "1.0" ]
                         |> List.map string
                         |> surroundJoin (char '<') (char '>') (char '=')
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "<one=1=1.0>"
             , test "it aligns elements (with separator in front) if they cannot fit on one line" <|
                 \_ ->
@@ -67,7 +66,7 @@ suite =
                     string "list"
                         |+ space
                         |+ surroundJoin (char '[') (char ']') (char ',') elements
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "list [a really long string\n     ,another really long string\n     ,a third really long string]"
             ]
         , describe "list"
@@ -76,7 +75,7 @@ suite =
                     [ 10, 200, 3000 ]
                         |> List.map int
                         |> list
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "[10,200,3000]"
             ]
         , describe "tupled"
@@ -85,7 +84,7 @@ suite =
                     [ "apples", "bananas", "carrots" ]
                         |> List.map string
                         |> surroundJoin (char '(') (char ')') (char ',')
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "(apples,bananas,carrots)"
             ]
         , describe "semiBraces"
@@ -94,7 +93,7 @@ suite =
                     [ "apples", "bananas", "carrots" ]
                         |> List.map string
                         |> surroundJoin (char '{') (char '}') (char ';')
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal "{apples;bananas;carrots}"
             ]
         ]

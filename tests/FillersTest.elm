@@ -1,8 +1,7 @@
 module FillersTest exposing (..)
 
+import Doc exposing (..)
 import Expect exposing (Expectation)
-import Main exposing (..)
-import Render
 import Test exposing (..)
 
 
@@ -32,7 +31,7 @@ suite =
                     string "let"
                         |+ space
                         |+ align (join linebreak (List.map ptype types))
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal expected
             ]
         , describe "fillBreak"
@@ -58,7 +57,7 @@ suite =
                     string "let"
                         |+ space
                         |+ align (join linebreak (List.map ptype types))
-                        |> Render.show
+                        |> Doc.toString
                         |> Expect.equal expected
             ]
         ]
