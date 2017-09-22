@@ -1022,7 +1022,7 @@ type Docs
 
 {-| Taks a Doc and converts it to a string with a column width of 80 and a ribbon width of 32
 -}
-toString : Doc -> String
+toString : Doc -> Maybe String
 toString doc =
     display (renderPretty 0.4 80 doc)
 
@@ -1208,28 +1208,28 @@ willFit1 pageWidth minNestingLvl firstLineWidth simpleDoc =
 
 {-| Takes a SimpleDoc and converts it to a String
 -}
-display : SimpleDoc -> String
+display : SimpleDoc -> Maybe String
 display simpleDoc =
     case simpleDoc of
         SFail ->
-            Debug.crash "SFail cannot appear uncaught in a rendered SimpleDoc"
+            Nothing
 
         SEmpty ->
-            ""
+            Just ""
 
         SChar char sDoc ->
-            String.cons char (display sDoc)
+            Maybe.map (String.cons char) (display sDoc)
 
         SText _ content sDoc ->
-            String.append content (display sDoc)
+            Maybe.map (String.append content) (display sDoc)
 
         SLine indents sDoc ->
             display sDoc
-                |> String.append (String.cons '\n' (Utils.spaces indents))
+                |> Maybe.map (String.append (String.cons '\n' (Utils.spaces indents)))
 
         SFormatted formats sDoc ->
             List.map getFormatter formats
-                |> List.foldr (<|) (display sDoc)
+                |> List.foldr Maybe.map (display sDoc)
 
 
 getFormatter : TextFormat -> Formatter

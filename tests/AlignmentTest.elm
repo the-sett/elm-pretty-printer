@@ -17,7 +17,8 @@ suite =
                         |> align
                         |> (|+) (string "hi ")
                         |> Doc.toString
-                        |> Expect.equal "hi nice\n   world"
+                        |> Maybe.map (Expect.equal "hi nice\n   world")
+                        |> Maybe.withDefault (Expect.fail "Failure in result")
             ]
         , describe "hang"
             [ test "it implements hanging indentation" <|
@@ -28,7 +29,8 @@ suite =
                         |> join softline
                         |> hang 4
                         |> Doc.toString
-                        |> Expect.equal "the hang combinator indents\n    these words !"
+                        |> Maybe.map (Expect.equal "the hang combinator indents\n    these words !")
+                        |> Maybe.withDefault (Expect.fail "Failure in result")
             ]
         , describe "indent"
             [ test "it indents entire document by given amount of spaces" <|
@@ -45,7 +47,8 @@ suite =
                     in
                     indent 4 elements
                         |> Doc.toString
-                        |> Expect.equal expected
+                        |> Maybe.map (Expect.equal expected)
+                        |> Maybe.withDefault (Expect.fail "Failure in result")
             ]
         , describe "encloseSep"
             [ test "it concats list of docs separated by sep and encloses result in left and right args" <|
@@ -54,7 +57,8 @@ suite =
                         |> List.map string
                         |> surroundJoin (char '<') (char '>') (char '=')
                         |> Doc.toString
-                        |> Expect.equal "<one=1=1.0>"
+                        |> Maybe.map (Expect.equal "<one=1=1.0>")
+                        |> Maybe.withDefault (Expect.fail "Failure in result")
             , test "it aligns elements (with separator in front) if they cannot fit on one line" <|
                 \_ ->
                     [ "a really long string", "another really long string", "a third really long string" ]
@@ -62,7 +66,8 @@ suite =
                         |> surroundJoin (char '[') (char ']') (char ',')
                         |> (|+) (string "list ")
                         |> Doc.toString
-                        |> Expect.equal "list [a really long string\n     ,another really long string\n     ,a third really long string]"
+                        |> Maybe.map (Expect.equal "list [a really long string\n     ,another really long string\n     ,a third really long string]")
+                        |> Maybe.withDefault (Expect.fail "Failure in result")
             ]
         , describe "list"
             [ test "it comma separates the docs and encloses them in square brackets" <|
@@ -71,7 +76,8 @@ suite =
                         |> List.map int
                         |> list
                         |> Doc.toString
-                        |> Expect.equal "[10,200,3000]"
+                        |> Maybe.map (Expect.equal "[10,200,3000]")
+                        |> Maybe.withDefault (Expect.fail "Failure in result")
             ]
         , describe "tupled"
             [ test "it comma separates the docs and encloses them in parens" <|
@@ -80,7 +86,8 @@ suite =
                         |> List.map string
                         |> surroundJoin (char '(') (char ')') (char ',')
                         |> Doc.toString
-                        |> Expect.equal "(apples,bananas,carrots)"
+                        |> Maybe.map (Expect.equal "(apples,bananas,carrots)")
+                        |> Maybe.withDefault (Expect.fail "Failure in result")
             ]
         , describe "semiBraces"
             [ test "it separates the docs with semicolons and encloses them in braces" <|
@@ -89,6 +96,7 @@ suite =
                         |> List.map string
                         |> surroundJoin (char '{') (char '}') (char ';')
                         |> Doc.toString
-                        |> Expect.equal "{apples;bananas;carrots}"
+                        |> Maybe.map (Expect.equal "{apples;bananas;carrots}")
+                        |> Maybe.withDefault (Expect.fail "Failure in result")
             ]
         ]

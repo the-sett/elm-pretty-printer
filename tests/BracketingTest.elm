@@ -17,7 +17,8 @@ suite =
                     in
                     surround (char '[') (char ')') (string words)
                         |> Doc.toString
-                        |> Expect.equal "[wrapped in stuff)"
+                        |> Maybe.map (Expect.equal "[wrapped in stuff)")
+                        |> Maybe.withDefault (Expect.fail "Failure in result")
             ]
         , describe "squotes"
             [ test "it surrounds the given doc in single quotes" <|
@@ -25,7 +26,8 @@ suite =
                     string "wrapped in single quotes"
                         |> squotes
                         |> Doc.toString
-                        |> Expect.equal "'wrapped in single quotes'"
+                        |> Maybe.map (Expect.equal "'wrapped in single quotes'")
+                        |> Maybe.withDefault (Expect.fail "Failure in result")
             ]
         , describe "dquotes"
             [ test "it surrounds the given doc in double quotes" <|
@@ -37,7 +39,8 @@ suite =
                     string "wrapped in double quotes"
                         |> dquotes
                         |> Doc.toString
-                        |> Expect.equal expected
+                        |> Maybe.map (Expect.equal expected)
+                        |> Maybe.withDefault (Expect.fail "Failure in result")
             ]
         , describe "parens"
             [ test "it surrounds the given doc in parens" <|
@@ -45,7 +48,8 @@ suite =
                     string "wrapped in parens"
                         |> parens
                         |> Doc.toString
-                        |> Expect.equal "(wrapped in parens)"
+                        |> Maybe.map (Expect.equal "(wrapped in parens)")
+                        |> Maybe.withDefault (Expect.fail "Failure in result")
             ]
         , describe "angles"
             [ test "it surrounds given doc in angle brackets" <|
@@ -53,7 +57,8 @@ suite =
                     string "wrapped in angle brackets"
                         |> angles
                         |> Doc.toString
-                        |> Expect.equal "<wrapped in angle brackets>"
+                        |> Maybe.map (Expect.equal "<wrapped in angle brackets>")
+                        |> Maybe.withDefault (Expect.fail "Failure in result")
             ]
         , describe "brackets"
             [ test "it surrounds given doc in square brackets" <|
@@ -61,7 +66,8 @@ suite =
                     string "wrapped in square brackets"
                         |> brackets
                         |> Doc.toString
-                        |> Expect.equal "[wrapped in square brackets]"
+                        |> Maybe.map (Expect.equal "[wrapped in square brackets]")
+                        |> Maybe.withDefault (Expect.fail "Failure in result")
             ]
         , describe "braces"
             [ test "it surrounds given doc in braces" <|
@@ -69,6 +75,7 @@ suite =
                     string "wrapped in braces"
                         |> braces
                         |> Doc.toString
-                        |> Expect.equal "{wrapped in braces}"
+                        |> Maybe.map (Expect.equal "{wrapped in braces}")
+                        |> Maybe.withDefault (Expect.fail "Failure in result")
             ]
         ]
