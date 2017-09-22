@@ -18,19 +18,18 @@ suite =
                             , ( "linebreak", "Doc" )
                             ]
 
-                        ptype ( name, tipe ) =
+                        ptype ( name, typeOf ) =
                             fill 6 (string name)
-                                |+ space
-                                |+ char ':'
-                                |+ space
-                                |+ string tipe
+                                |+ string " : "
+                                |+ string typeOf
 
                         expected =
                             "let empty  : Doc\n    nest   : Int -> Doc -> Doc\n    linebreak : Doc"
                     in
-                    string "let"
-                        |+ space
-                        |+ align (join linebreak (List.map ptype types))
+                    List.map ptype types
+                        |> join linebreak
+                        |> align
+                        |> (|+) (string "let ")
                         |> Doc.toString
                         |> Expect.equal expected
             ]
@@ -44,19 +43,18 @@ suite =
                             , ( "linebreak", "Doc" )
                             ]
 
-                        ptype ( name, tipe ) =
+                        ptype ( name, typeOf ) =
                             fillBreak 6 (string name)
-                                |+ space
-                                |+ char ':'
-                                |+ space
-                                |+ string tipe
+                                |+ string " : "
+                                |+ string typeOf
 
                         expected =
                             "let empty  : Doc\n    nest   : Int -> Doc -> Doc\n    linebreak\n           : Doc"
                     in
-                    string "let"
-                        |+ space
-                        |+ align (join linebreak (List.map ptype types))
+                    List.map ptype types
+                        |> join linebreak
+                        |> align
+                        |> (|+) (string "let ")
                         |> Doc.toString
                         |> Expect.equal expected
             ]

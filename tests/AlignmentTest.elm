@@ -11,19 +11,18 @@ suite =
         [ describe "align"
             [ test "it renders doc with nesting lvl set to current column" <|
                 \_ ->
-                    string "hi "
-                        |+ align (string "nice" |+ line |+ string "world")
+                    string "nice"
+                        |+ line
+                        |+ string "world"
+                        |> align
+                        |> (|+) (string "hi ")
                         |> Doc.toString
                         |> Expect.equal "hi nice\n   world"
             ]
         , describe "hang"
             [ test "it implements hanging indentation" <|
                 \_ ->
-                    let
-                        words =
-                            "the hang combinator indents these words !"
-                    in
-                    words
+                    "the hang combinator indents these words !"
                         |> String.words
                         |> List.map string
                         |> join softline
@@ -58,14 +57,10 @@ suite =
                         |> Expect.equal "<one=1=1.0>"
             , test "it aligns elements (with separator in front) if they cannot fit on one line" <|
                 \_ ->
-                    let
-                        elements =
-                            [ "a really long string", "another really long string", "a third really long string" ]
-                                |> List.map string
-                    in
-                    string "list"
-                        |+ space
-                        |+ surroundJoin (char '[') (char ']') (char ',') elements
+                    [ "a really long string", "another really long string", "a third really long string" ]
+                        |> List.map string
+                        |> surroundJoin (char '[') (char ']') (char ',')
+                        |> (|+) (string "list ")
                         |> Doc.toString
                         |> Expect.equal "list [a really long string\n     ,another really long string\n     ,a third really long string]"
             ]

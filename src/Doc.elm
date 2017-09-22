@@ -121,23 +121,56 @@ type ConsoleLayer
     | Background
 
 
+{-| Append two Docs together
+
+    string "hello "
+        |+ string "world"
+        |> Doc.toString
+    -- when printed, will be rendered as
+    hello world
+
+-}
 infixr 6 |+
 (|+) : Doc -> Doc -> Doc
 (|+) =
     Cat
 
 
+{-| Puts many Docs together, separated by a given Doc.
+
+    ["how", "now", "brown", "cow?"]
+        |> List.map string
+        |> join (char ' ')
+        |> Doc.toString
+    -- when printed, will be rendered as
+    how now brown cow?
+
+-}
 join : Doc -> List Doc -> Doc
 join sep =
     concat << List.intersperse sep
 
 
+{-| Concatenates many Docs into one.
+
+    ["how", "now", "brown", "cow?"]
+        |> List.map string
+        |> concat
+        |> Doc.toString
+    -- when printed, will be rendered as
+    hownowbrowncow?
+
+-}
 concat : List Doc -> Doc
 concat docs =
     Utils.foldr1 (|+) docs
         |> Maybe.withDefault Empty
 
 
+{-| Tries to put all elements of a Doc on the current line if it will fit
+the width of the page. If everything cannot fit on the current line, then
+no changes are made.
+-}
 group : Doc -> Doc
 group doc =
     Union (flatten doc) doc
@@ -147,36 +180,116 @@ group doc =
 -- BASIC COMBINATORS
 
 
+{-| An empty Doc element.
+
+    Doc.toString empty == ""
+
+-}
 empty : Doc
 empty =
     Empty
 
 
+{-| Doc element that represents a space
+
+    space =
+        char ' '
+
+-}
 space : Doc
 space =
     Char ' '
 
 
-softline : Doc
-softline =
-    group line
+{-| Doc that, when combined with other Doc elements, advances to the next line.
 
+    ["how", "now", "brown", "cow?"]
+        |> List.map string
+        |> join line
+        |> Doc.toString
+    -- when printed, will be rendered as:
+    how
+    now
+    brown
+    cow
 
-softbreak : Doc
-softbreak =
-    group linebreak
+When `group` is called on a Doc with a `line` element, it is replaced with spaces.
 
+    ["how", "now", "brown", "cow?"]
+        |> List.map string
+        |> join line
+        |> group
+        |> Doc.toString
+    -- when printed, will be rendered as:
+    how now brown cow?
 
+-}
 line : Doc
 line =
     FlatAlt Line space
 
 
+{-| Works the same way as `line`, except when `group` is called on a Doc with a `linebreak`
+element, the `linebreak` is replaced with `empty`
+
+    ["how", "now", "brown", "cow?"]
+        |> List.map string
+        |> join linebreak
+        |> group
+        |> Doc.toString
+    -- when printed, will be rendered as:
+    hownowbrowncow?
+
+-}
 linebreak : Doc
 linebreak =
     FlatAlt Line Empty
 
 
+{-| Doc that, when combined with other Doc elements, advances a single space if the current
+line has room.
+
+    ["how", "now", "brown", "cow?"]
+        |> List.map string
+        |> join softline
+        |> Doc.toString
+    -- when printed, will be rendered as:
+    how now brown cow?
+
+If the elements cannot fit on the same line, then it advances to the next line.
+
+    string "a really long string that might"
+        |+ softline
+        |+ string "not fit on one line"
+        |> Doc.toString
+    -- when printed, will be rendered as
+    a really long string that might
+    not fit on one line
+
+-}
+softline : Doc
+softline =
+    group line
+
+
+{-| Similar to `softline`, except it does not advance the current column if elements can
+fit on the same line.
+
+    ["how", "now", "brown", "cow?"]
+        |> List.map string
+        |> join softbreak
+        |> Doc.toString
+    -- when printed, will be rendered as:
+    hownowbrowncow?
+
+-}
+softbreak : Doc
+softbreak =
+    group linebreak
+
+
+{-| Creates a Doc from a String.
+-}
 string : String -> Doc
 string str =
     case str of
@@ -190,6 +303,8 @@ string str =
                 Text (String.length s) s
 
 
+{-| Creates a Doc from a Char.
+-}
 char : Char -> Doc
 char input =
     case input of
@@ -200,16 +315,22 @@ char input =
             Char input
 
 
+{-| Create a Doc from an Int.
+-}
 int : Int -> Doc
 int =
     string << Basics.toString
 
 
+{-| Create a Doc from a Float.
+-}
 float : Float -> Doc
 float =
     string << Basics.toString
 
 
+{-| Create a Doc from a Bool.
+-}
 bool : Bool -> Doc
 bool =
     string << Basics.toString
@@ -223,6 +344,7 @@ If you don't need fine-grain control over where elements will be placed, `align`
 
     string "hello"
         |+ column (\col -> indent col (string "from afar"))
+        |> Doc.toString
 
     -- when rendered, will be printed as
     hello     from afar
@@ -254,6 +376,7 @@ nesting =
     nest 2 (string "hello" |+ line |+ string "world")
         |+ line
         |+ char '!'
+        |> Doc.toString
 
     -- when rendered, will be printed as
     hello
@@ -270,6 +393,20 @@ nest =
 -- ALIGNMENT
 
 
+{-| Sets the nesting level of the given Doc equal to the current column. This vertically aligns the
+Doc elements so that they move as a single column.
+
+    string "old"
+        |+ line
+        |+ string "friend"
+        |> align
+        |> (|+) (string "hello ")
+        |> Doc.toString
+    -- when rendered, will be printed as
+    hello old
+          friend
+
+-}
 align : Doc -> Doc
 align doc =
     column
@@ -279,11 +416,35 @@ align doc =
         )
 
 
+{-| Applies hanging indentation equal to the given integer. Does not indent the first line.
+
+    ["the", "hang", "combinator", "indents", "these", "words !"]
+        |> List.map string
+        |> join softline
+        |> hang 4
+        |> Doc.toString
+    -- when rendered, will be printed as
+    the hang combinator indents\n
+        these words !
+
+-}
 hang : Int -> Doc -> Doc
 hang spaces doc =
     align (nest spaces doc)
 
 
+{-| Indents the entire Doc equal to the given number of spaces.
+
+    ["the", "indent", "combinator", "indents", "these", "words !"]
+        |> List.map string
+        |> join softline
+        |> indent 4
+        |> Doc.toString
+    -- when printed, will be rendered as
+        the indent combinator
+        indents these words !
+
+-}
 indent : Int -> Doc -> Doc
 indent spaces doc =
     string (Utils.spaces spaces)
@@ -295,6 +456,14 @@ indent spaces doc =
 -- BRACKETING
 
 
+{-| Surrounds a Doc with given Docs.
+
+    surround (char '#') (char '?') (string "questionable")
+        |> Doc.toString
+    -- when printed, will be rendered as:
+    #questionable?
+
+-}
 surround : Doc -> Doc -> Doc -> Doc
 surround left right doc =
     left
@@ -302,36 +471,70 @@ surround left right doc =
         |+ right
 
 
+{-| Surrounds a Doc in single quotes
+-}
 squotes : Doc -> Doc
 squotes =
     surround (char '\'') (char '\'')
 
 
+{-| Surrounds a Doc in double quotes
+-}
 dquotes : Doc -> Doc
 dquotes =
     surround (char '"') (char '"')
 
 
+{-| Surrounds a Doc in parentheses
+-}
 parens : Doc -> Doc
 parens =
     surround (char '(') (char ')')
 
 
+{-| Surrounds a Doc in angle brackets
+-}
 angles : Doc -> Doc
 angles =
     surround (char '<') (char '>')
 
 
+{-| Surrounds a Doc in square brackets
+-}
 brackets : Doc -> Doc
 brackets =
     surround (char '[') (char ']')
 
 
+{-| Surrounds a Doc in curly braces
+-}
 braces : Doc -> Doc
 braces =
     surround (char '{') (char '}')
 
 
+{-| Joins a List of Docs together with a given separator and surrounds it with given Docs.
+
+    List.map string ["some", "html", "element"]
+        |> surroundJoin (char '<') (char '>') (char '-')
+        |> Doc.toString
+    -- when printed, will be rendered as
+    <some-html-element>
+
+Provides a bit of extra formatting help by aligning elements (separator in front) if they cannot
+all fit on the same line.
+
+    [ "a really long string", "another really long string", "a third really long string" ]
+        |> List.map string
+        |> surroundJoin (char '[') (char ']') (char ',')
+        |> (|+) (string "list ")
+        |> Doc.toString
+    -- when printed, will be rendered as
+    list [a really long string
+         ,another really long string
+         ,a third really long string]
+
+-}
 surroundJoin : Doc -> Doc -> Doc -> List Doc -> Doc
 surroundJoin left right sep docs =
     case docs of
@@ -339,24 +542,32 @@ surroundJoin left right sep docs =
             left
                 |+ right
 
-        [ doc ] ->
+        doc :: [] ->
             left
                 |+ doc
                 |+ right
 
         _ ->
-            let
-                separators =
-                    List.repeat (List.length docs) sep
-            in
             docs
-                |> List.map2 (|+) (left :: separators)
+                |> List.map2 (|+) (left :: List.repeat (List.length docs) sep)
                 |> join linebreak
                 |> group
                 |> flip (|+) right
                 |> align
 
 
+{-| Render a list of Docs as a list.
+
+    list =
+      surroundJoin (char '[') (char ']') (char ',')
+
+    List.map int [10, 200, 3000]
+        |> list
+        |> Doc.toString
+    -- when printed, will be rendered as
+    [10,200,3000]
+
+-}
 list : List Doc -> Doc
 list =
     surroundJoin (char '[') (char ']') (char ',')
@@ -371,14 +582,17 @@ column is equal to the given Int.
 
     fill 12 (string "how now")
         |+ string "brown cow?"
+        |> Doc.toString
     -- when printed, will be rendered as:
     how now     brown cow?
 
 If current column is greater than the given Int, nothing is appended.
 
-    fill 5 (string "how now brown cow?")
+    fill 5 (string "how now")
+        |+ string "brown cow?"
+        |> Doc.toString
     -- when printed, will be rendered as:
-    how now brown cow?
+    how nowbrown cow?
 
 This can be especially useful with `align` to represent type signatures
 
@@ -389,13 +603,16 @@ This can be especially useful with `align` to represent type signatures
             , ( "linebreak", "Doc" )
             ]
 
-        asAnnotation ( name, tipe ) =
+        asAnnotation ( name, typeOf ) =
             fill 6 (string name)
                 |+ string " : "
-                |+ string tipe
+                |+ string typeOf
     in
-        string "let "
-            |+ align (join linebreak (List.map asAnnotation types))
+    List.map asAnnotation types
+        |> join linebreak
+        |> align
+        |> (|+) (string "let ")
+        |> Doc.toString
 
     -- when printed, will be rendered as:
     let empty  : Doc
@@ -425,13 +642,16 @@ then a linebreak is inserted and the nesting level is increased to given `Int`.
             , ( "linebreak", "Doc" )
             ]
 
-        asAnnotation ( name, tipe ) =
+        asAnnotation ( name, typeOf ) =
             fillBreak 6 (string name)
                 |+ string " : "
-                |+ string tipe
+                |+ string typeOf
     in
-        string "let "
-            |+ align (join linebreak (List.map asAnnotation types))
+    List.map asAnnotation types
+        |> join linebreak
+        |> align
+        |> (|+) (string "let ")
+        |> Doc.toString
 
     -- when printed, will be rendered as:
     let empty  : Doc
@@ -474,76 +694,106 @@ color =
     Color Foreground
 
 
+{-| Changes text color of Doc to black. May not be supported on all terminals.
+-}
 black : Doc -> Doc
 black =
     color (Black Ansi.black)
 
 
+{-| Changes text color of Doc to red. May not be supported on all terminals.
+-}
 red : Doc -> Doc
 red =
     color (Red Ansi.red)
 
 
+{-| Changes text color of Doc to dark red. May not be supported on all terminals.
+-}
 darkRed : Doc -> Doc
 darkRed =
     color <| Red (Ansi.dark << Ansi.red)
 
 
+{-| Changes text color of Doc to green. May not be supported on all terminals.
+-}
 green : Doc -> Doc
 green =
     color (Green Ansi.green)
 
 
+{-| Changes text color of Doc to dark green. May not be supported on all terminals.
+-}
 darkGreen : Doc -> Doc
 darkGreen =
     color <| Green (Ansi.dark << Ansi.green)
 
 
+{-| Changes text color of Doc to yellow. May not be supported on all terminals.
+-}
 yellow : Doc -> Doc
 yellow =
     color (Yellow Ansi.yellow)
 
 
+{-| Changes text color of Doc to dark yellow. May not be supported on all terminals.
+-}
 darkYellow : Doc -> Doc
 darkYellow =
     color <| Yellow (Ansi.dark << Ansi.yellow)
 
 
+{-| Changes text color of Doc to blue. May not be supported on all terminals.
+-}
 blue : Doc -> Doc
 blue =
     color (Blue Ansi.blue)
 
 
+{-| Changes text color of Doc to dark blue. May not be supported on all terminals.
+-}
 darkBlue : Doc -> Doc
 darkBlue =
     color <| Blue (Ansi.dark << Ansi.blue)
 
 
+{-| Changes text color of Doc to magenta. May not be supported on all terminals.
+-}
 magenta : Doc -> Doc
 magenta =
     color (Magenta Ansi.magenta)
 
 
+{-| Changes text color of Doc to dark magenta. May not be supported on all terminals.
+-}
 darkMagenta : Doc -> Doc
 darkMagenta =
     color <| Magenta (Ansi.dark << Ansi.magenta)
 
 
+{-| Changes text color of Doc to cyan. May not be supported on all terminals.
+-}
 cyan : Doc -> Doc
 cyan =
     color (Cyan Ansi.cyan)
 
 
+{-| Changes text color of Doc to dark cyan. May not be supported on all terminals.
+-}
 darkCyan : Doc -> Doc
 darkCyan =
     color <| Cyan (Ansi.dark << Ansi.cyan)
 
 
+{-| Changes text color of Doc to white. May not be supported on all terminals.
+-}
 white : Doc -> Doc
 white =
     color (White Ansi.white)
 
 
+{-| Changes text color of Doc to dark white. May not be supported on all terminals.
+-}
 darkWhite : Doc -> Doc
 darkWhite =
     color <| White (Ansi.dark << Ansi.white)
@@ -554,41 +804,57 @@ bgColor =
     Color Background
 
 
+{-| Changes background color of Doc to red. May not be supported on all terminals.
+-}
 onRed : Doc -> Doc
 onRed =
     bgColor (Red Ansi.bgRed)
 
 
+{-| Changes background color of Doc to white. May not be supported on all terminals.
+-}
 onWhite : Doc -> Doc
 onWhite =
     bgColor (White Ansi.bgWhite)
 
 
+{-| Changes background color of Doc to blue. May not be supported on all terminals.
+-}
 onBlue : Doc -> Doc
 onBlue =
     bgColor (Blue Ansi.bgBlue)
 
 
+{-| Changes background color of Doc to yellow. May not be supported on all terminals.
+-}
 onYellow : Doc -> Doc
 onYellow =
     bgColor (Yellow Ansi.bgYellow)
 
 
+{-| Changes background color of Doc to cyan. May not be supported on all terminals.
+-}
 onCyan : Doc -> Doc
 onCyan =
     bgColor (Cyan Ansi.bgCyan)
 
 
+{-| Changes background color of Doc to green. May not be supported on all terminals.
+-}
 onGreen : Doc -> Doc
 onGreen =
     bgColor (Green Ansi.bgGreen)
 
 
+{-| Changes background color of Doc to black. May not be supported on all terminals.
+-}
 onBlack : Doc -> Doc
 onBlack =
     bgColor (Black Ansi.bgBlack)
 
 
+{-| Changes background color of Doc to magenta. May not be supported on all terminals.
+-}
 onMagenta : Doc -> Doc
 onMagenta =
     bgColor (Magenta Ansi.bgMagenta)
@@ -598,11 +864,15 @@ onMagenta =
 -- FORMATTING
 
 
+{-| Takes a Doc and bolds all the text. May not be supported on all terminals.
+-}
 bold : Doc -> Doc
 bold =
     Bold Ansi.bold
 
 
+{-| Removes all bold formatting from a Doc while keeping other formatting.
+-}
 debold : Doc -> Doc
 debold doc =
     case doc of
@@ -640,11 +910,15 @@ debold doc =
             doc
 
 
+{-| Takes a Doc and underlines all the text. May not be supported on all terminals.
+-}
 underline : Doc -> Doc
 underline =
     Underline Ansi.underline
 
 
+{-| Removes all underlining from a Doc while keeping other formatting.
+-}
 deunderline : Doc -> Doc
 deunderline doc =
     case doc of
@@ -682,6 +956,8 @@ deunderline doc =
             doc
 
 
+{-| Removes all formatting from a Doc, including foreground (text) color, background color, underlining, and bold.
+-}
 plain : Doc -> Doc
 plain doc =
     case doc of
