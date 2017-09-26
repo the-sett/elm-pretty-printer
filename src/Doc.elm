@@ -286,7 +286,7 @@ space =
     -- brown
     -- cow
 
-When `group` is called on a Doc with a `line` element, it is replaced with spaces.
+When `group` is called on a Doc separated by `line` elements, the `line`s are replaced with spaces.
 
     ["how", "now", "brown", "cow?"]
         |> List.map string
@@ -337,7 +337,7 @@ softline =
     group line
 
 
-{-| Similar to `softline`, except it does not advance the current column if elements can
+{-| Works the same way `softline`, except it separates with `empty` if elements can
 fit on the same line.
 
     ["how", "now", "brown", "cow?"]
@@ -399,7 +399,7 @@ int =
 
 {-| Create a Doc from a Float.
 
-    float "12.3456"
+    float 12.3456
     -- 12.3456
 
 -}
@@ -471,7 +471,7 @@ Doc elements so that they move as a single column.
         |+ line
         |+ string "friend"
         |> align
-        |> (|+) (string "hello ")
+        |> append (string "hello ")
     -- hello old
     --       friend
 
@@ -535,6 +535,10 @@ surround left right doc =
 
 
 {-| Surrounds a Doc in single quotes
+
+    squotes (string "wrapped in single quotes")
+    -- 'wrapped in single quotes'
+
 -}
 squotes : Doc -> Doc
 squotes =
@@ -542,6 +546,10 @@ squotes =
 
 
 {-| Surrounds a Doc in double quotes
+
+    dquotes (string "wrapped in double quotes")
+    -- "wrapped in double quotes"
+
 -}
 dquotes : Doc -> Doc
 dquotes =
@@ -549,6 +557,10 @@ dquotes =
 
 
 {-| Surrounds a Doc in parentheses
+
+    parens (string "wrapped in parens")
+    -- (wrapped in parens)
+
 -}
 parens : Doc -> Doc
 parens =
@@ -556,6 +568,10 @@ parens =
 
 
 {-| Surrounds a Doc in angle brackets
+
+    angles (string "wrapped in angles")
+    -- <wrapped in angles>
+
 -}
 angles : Doc -> Doc
 angles =
@@ -563,6 +579,10 @@ angles =
 
 
 {-| Surrounds a Doc in square brackets
+
+    brackets (string "wrapped in brackets")
+    -- [wrapped in brackets]
+
 -}
 brackets : Doc -> Doc
 brackets =
@@ -570,6 +590,10 @@ brackets =
 
 
 {-| Surrounds a Doc in curly braces
+
+    braces (string "wrapped in braces")
+    -- {wrapped in braces}
+
 -}
 braces : Doc -> Doc
 braces =
@@ -664,7 +688,7 @@ This can be especially useful with `align` to represent type signatures
     List.map asAnnotation types
         |> join linebreak
         |> align
-        |> (|+) (string "let ")
+        |> append (string "let ")
 
     -- let empty  : Doc
     --     nest   : Int -> Doc -> Doc
@@ -701,7 +725,7 @@ then a linebreak is inserted and the nesting level is increased to given `Int`.
     List.map asAnnotation types
         |> join linebreak
         |> align
-        |> (|+) (string "let ")
+        |> append (string "let ")
 
     -- let empty  : Doc
     --     nest   : Int -> Doc -> Doc
@@ -1054,7 +1078,7 @@ type TextFormat
     | Reset
 
 
-{-| NormalForm is the intermediate data structure between Doc and String.
+{-| Intermediate data structure between Doc and String.
 -}
 type NormalForm
     = Failure
@@ -1072,7 +1096,7 @@ type Docs
 
 {-| Takes a Doc and converts it to a string with a column width of 80 and a ribbon width of 32
 -}
-toString : Doc -> Maybe String
+toString : Doc -> Result String String
 toString doc =
     display (renderPretty 0.4 80 doc)
 
@@ -1256,30 +1280,30 @@ willFit1 pageWidth minNestingLvl firstLineWidth simpleDoc =
                 willFit1 pageWidth minNestingLvl firstLineWidth sDoc
 
 
-{-| Takes a NormalForm and converts it to a Maybe String
+{-| Takes a NormalForm and converts it to a `Result String String`
 -}
-display : NormalForm -> Maybe String
+display : NormalForm -> Result String String
 display simpleDoc =
     case simpleDoc of
         Failure ->
-            Nothing
+            Err "Failure cannot appear in NormalForm"
 
         Blank ->
-            Just ""
+            Ok ""
 
         Character char sDoc ->
-            Maybe.map (String.cons char) (display sDoc)
+            Result.map (String.cons char) (display sDoc)
 
         TextElement _ content sDoc ->
-            Maybe.map (String.append content) (display sDoc)
+            Result.map (String.append content) (display sDoc)
 
         Linebreak indents sDoc ->
             display sDoc
-                |> Maybe.map (String.append (String.cons '\n' (Utils.spaces indents)))
+                |> Result.map (String.append (String.cons '\n' (Utils.spaces indents)))
 
         Formatted formats sDoc ->
             List.map getFormatter formats
-                |> List.foldr Maybe.map (display sDoc)
+                |> List.foldr Result.map (display sDoc)
 
 
 getFormatter : TextFormat -> Formatter

@@ -31,8 +31,8 @@ suite =
                         |> align
                         |> (|+) (string "let ")
                         |> Doc.toString
-                        |> Maybe.map (Expect.equal expected)
-                        |> Maybe.withDefault (Expect.fail "Failure in result")
+                        |> Result.map (Expect.equal expected)
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
         , describe "fillBreak"
             [ test "same as fill, but inserts break and increase nesting to int if longer than int" <|
@@ -57,7 +57,7 @@ suite =
                         |> align
                         |> (|+) (string "let ")
                         |> Doc.toString
-                        |> Maybe.map (Expect.equal expected)
-                        |> Maybe.withDefault (Expect.fail "Failure in result")
+                        |> Result.map (Expect.equal expected)
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
         ]

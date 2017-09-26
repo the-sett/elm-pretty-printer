@@ -285,7 +285,7 @@
       },
       {
         "name": "float",
-        "comment": " Create a Doc from a Float.\n\n    float \"12.3456\"\n    -- 12.3456\n\n",
+        "comment": " Create a Doc from a Float.\n\n    float 12.3456\n    -- 12.3456\n\n",
         "type": "Float -> Doc.Doc"
       },
       {
@@ -310,7 +310,7 @@
       },
       {
         "name": "int",
-        "comment": " Create a Doc from an Int.\n\n    int 3\n        |+ char 'D'\n    -- 3D\n\n",
+        "comment": " Create a Doc from an Int.\n\n    int 3\n    -- 3\n\n",
         "type": "Int -> Doc.Doc"
       },
       {
