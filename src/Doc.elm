@@ -70,15 +70,17 @@ module Doc
         , yellow
         )
 
-{-| A pretty printing library based off of the the paper by Philip Wadler.
+{-| A pretty printing library based off of the the [paper by Philip Wadler][paper].
 Right now this library is geared to print to the terminal, so users must pass the content they wish to pretty print as
-the first argument of `Debug.log` in order for the text to be rendered as expected. In the future I intend to add
-functionality that will allow pretty printing as Html.
+the first argument of `Debug.log` in order for the text to be rendered as expected. **The comments underneath each example
+is what Debug.log will render after the Doc is converted to a String**. In the future I intend to add functionality that will allow pretty printing as Html.
+
+[paper]: https://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf
 
 
 # Basics
 
-@docs string, char, int, float, bool, space, empty
+@docs Doc, string, char, int, float, bool, space, empty
 
 
 # Combining Docs
@@ -108,8 +110,7 @@ functionality that will allow pretty printing as Html.
 
 # Colors
 
-@docs black, red, darkRed, green, darkGreen, yellow, darkYellow, blue, darkBlue, magenta, darkMagenta,
-cyan, darkCyan, white, darkWhite, onRed, onWhite, onBlue, onYellow, onCyan, onGreen, onBlack, onMagenta
+@docs Color, Formatter, black, red, darkRed, green, darkGreen, yellow, darkYellow, blue, darkBlue, magenta, darkMagenta, cyan, darkCyan, white, darkWhite, onRed, onWhite, onBlue, onYellow, onCyan, onGreen, onBlack, onMagenta
 
 
 # Formatting
@@ -119,7 +120,7 @@ cyan, darkCyan, white, darkWhite, onRed, onWhite, onBlue, onYellow, onCyan, onGr
 
 # Rendering
 
-@docs toString, NormalForm, TextFormat, renderPretty, display
+@docs NormalForm, TextFormat, renderPretty, toString, display
 
 -}
 
@@ -128,7 +129,7 @@ import Console as Ansi
 import Utils
 
 
-{-| Serves as a combinator that can represent any atomic element that can be rendered.
+{-| Serves as a representation of what can be rendered. Can be combined, aligned, and formatted in many ways.
 -}
 type Doc
     = Fail
@@ -156,16 +157,13 @@ type Doc
 
 {-| Type alias for a function that knows how to take a String and return a new String with some
 sort of formatting. Right now formatting can either be color, bold, or underline.
-
-    type alias Formatter =
-        String -> String
-
 -}
 type alias Formatter =
     String -> String
 
 
-{-| Different ANSI Colors that can be displayed. Many have dark variations as well.
+{-| Different ANSI Colors that can be displayed. Many have dark variations as well. Colors may come out differently
+depending on your terminal.
 -}
 type Color
     = Black Formatter
@@ -186,8 +184,7 @@ type ConsoleLayer
 {-| Append two Docs together
 
     append (string "hello ") (string "world")
-    -- will be rendered as
-    hello world
+    -- hello world
 
 -}
 append : Doc -> Doc -> Doc
@@ -195,15 +192,16 @@ append =
     Cat
 
 
+infixr 6 |+
+
+
 {-| Infix version of `append`
 
     string "hello "
         |+ string "world"
-    -- when printed, will be rendered as
-    hello world
+    -- hello world
 
 -}
-infixr 6 |+
 (|+) : Doc -> Doc -> Doc
 (|+) =
     Cat
@@ -214,8 +212,7 @@ infixr 6 |+
     ["how", "now", "brown", "cow?"]
         |> List.map string
         |> join (char ' ')
-    -- when printed, will be rendered as
-    how now brown cow?
+    -- how now brown cow?
 
 -}
 join : Doc -> List Doc -> Doc
@@ -228,8 +225,7 @@ join sep =
     ["how", "now", "brown", "cow?"]
         |> List.map string
         |> concat
-    -- when printed, will be rendered as
-    hownowbrowncow?
+    -- hownowbrowncow?
 
 -}
 concat : List Doc -> Doc
@@ -241,6 +237,13 @@ concat docs =
 {-| Tries to put all elements of a Doc on the current line if it will fit
 the width of the page. If everything cannot fit on the current line, then
 no changes are made.
+
+    string "how now"
+        |+ char '\n'
+        |+ string "brown cow?"
+        |> group
+    -- how now brown cow?
+
 -}
 group : Doc -> Doc
 group doc =
@@ -252,6 +255,10 @@ group doc =
 
 
 {-| An empty Doc element.
+
+    empty
+    -- ""
+
 -}
 empty : Doc
 empty =
@@ -274,11 +281,10 @@ space =
     ["how", "now", "brown", "cow?"]
         |> List.map string
         |> join line
-    -- when printed, will be rendered as:
-    how
-    now
-    brown
-    cow
+    -- how
+    -- now
+    -- brown
+    -- cow
 
 When `group` is called on a Doc with a `line` element, it is replaced with spaces.
 
@@ -286,8 +292,7 @@ When `group` is called on a Doc with a `line` element, it is replaced with space
         |> List.map string
         |> join line
         |> group
-    -- when printed, will be rendered as:
-    how now brown cow?
+    -- how now brown cow?
 
 -}
 line : Doc
@@ -302,8 +307,7 @@ element, the `linebreak` is replaced with `empty`
         |> List.map string
         |> join linebreak
         |> group
-    -- when printed, will be rendered as:
-    hownowbrowncow?
+    -- hownowbrowncow?
 
 -}
 linebreak : Doc
@@ -317,17 +321,15 @@ line has room.
     ["how", "now", "brown", "cow?"]
         |> List.map string
         |> join softline
-    -- when printed, will be rendered as:
-    how now brown cow?
+    -- how now brown cow?
 
 If the elements cannot fit on the same line, then it advances to the next line.
 
     string "a really long string that might"
         |+ softline
         |+ string "not fit on one line"
-    -- when printed, will be rendered as
-    a really long string that might
-    not fit on one line
+    -- a really long string that might
+    -- not fit on one line
 
 -}
 softline : Doc
@@ -341,8 +343,7 @@ fit on the same line.
     ["how", "now", "brown", "cow?"]
         |> List.map string
         |> join softbreak
-    -- when printed, will be rendered as:
-    hownowbrowncow?
+    -- hownowbrowncow?
 
 -}
 softbreak : Doc
@@ -353,8 +354,7 @@ softbreak =
 {-| Creates a Doc from a String.
 
     string "hello, world!"
-    -- will be rendered as
-    hello, world!
+    -- hello, world!
 
 -}
 string : String -> Doc
@@ -373,8 +373,7 @@ string str =
 {-| Creates a Doc from a Char.
 
     char '!'
-    -- will be rendered as
-    !
+    -- !
 
 -}
 char : Char -> Doc
@@ -388,6 +387,10 @@ char input =
 
 
 {-| Create a Doc from an Int.
+
+    int 3
+    -- 3
+
 -}
 int : Int -> Doc
 int =
@@ -395,6 +398,10 @@ int =
 
 
 {-| Create a Doc from a Float.
+
+    float "12.3456"
+    -- 12.3456
+
 -}
 float : Float -> Doc
 float =
@@ -402,6 +409,10 @@ float =
 
 
 {-| Create a Doc from a Bool.
+
+    bool True
+    -- True
+
 -}
 bool : Bool -> Doc
 bool =
@@ -416,9 +427,7 @@ If you don't need fine-grain control over where elements will be placed, `align`
 
     string "hello"
         |+ column (\col -> indent col (string "from afar"))
-
-    -- when rendered, will be printed as
-    hello     from afar
+    -- hello     from afar
 
 -}
 column : (Int -> Doc) -> Doc
@@ -441,11 +450,9 @@ nesting =
     nest 2 (string "hello" |+ line |+ string "world")
         |+ line
         |+ char '!'
-
-    -- when rendered, will be printed as
-    hello
-      world
-    !
+    -- hello
+    --  world
+    -- !
 
 -}
 nest : Int -> Doc -> Doc
@@ -465,9 +472,8 @@ Doc elements so that they move as a single column.
         |+ string "friend"
         |> align
         |> (|+) (string "hello ")
-    -- when rendered, will be printed as
-    hello old
-          friend
+    -- hello old
+    --       friend
 
 -}
 align : Doc -> Doc
@@ -485,9 +491,8 @@ align doc =
         |> List.map string
         |> join softline
         |> hang 4
-    -- when rendered, will be printed as
-    the hang combinator indents\n
-        these words !
+    -- the hang combinator indents
+    --     these words !
 
 -}
 hang : Int -> Doc -> Doc
@@ -501,9 +506,8 @@ hang spaces doc =
         |> List.map string
         |> join softline
         |> indent 4
-    -- when printed, will be rendered as
-        the indent combinator
-        indents these words !
+    --     the indent combinator
+    --     indents these words !
 
 -}
 indent : Int -> Doc -> Doc
@@ -520,8 +524,7 @@ indent spaces doc =
 {-| Surrounds a Doc with given Docs.
 
     surround (char '#') (char '?') (string "questionable")
-    -- when printed, will be rendered as:
-    #questionable?
+    -- #questionable?
 
 -}
 surround : Doc -> Doc -> Doc -> Doc
@@ -577,8 +580,7 @@ braces =
 
     List.map string ["some", "html", "element"]
         |> surroundJoin (char '<') (char '>') (char '-')
-    -- when printed, will be rendered as
-    <some-html-element>
+    -- <some-html-element>
 
 Provides a bit of extra formatting help by aligning elements (separator in front) if they cannot
 all fit on the same line.
@@ -587,10 +589,9 @@ all fit on the same line.
         |> List.map string
         |> surroundJoin (char '[') (char ']') (char ',')
         |> (|+) (string "list ")
-    -- when printed, will be rendered as
-    list [a really long string
-         ,another really long string
-         ,a third really long string]
+    -- list [a really long string
+    --      ,another really long string
+    --      ,a third really long string]
 
 -}
 surroundJoin : Doc -> Doc -> Doc -> List Doc -> Doc
@@ -621,8 +622,7 @@ surroundJoin left right sep docs =
 
     List.map int [10, 200, 3000]
         |> list
-    -- when printed, will be rendered as
-    [10,200,3000]
+    -- [10,200,3000]
 
 -}
 list : List Doc -> Doc
@@ -639,15 +639,13 @@ column is equal to the given Int.
 
     fill 12 (string "how now")
         |+ string "brown cow?"
-    -- when printed, will be rendered as:
-    how now     brown cow?
+    -- how now     brown cow?
 
 If current column is greater than the given Int, nothing is appended.
 
     fill 5 (string "how now")
         |+ string "brown cow?"
-    -- when printed, will be rendered as:
-    how nowbrown cow?
+    -- how nowbrown cow?
 
 This can be especially useful with `align` to represent type signatures
 
@@ -668,10 +666,9 @@ This can be especially useful with `align` to represent type signatures
         |> align
         |> (|+) (string "let ")
 
-    -- when printed, will be rendered as:
-    let empty  : Doc
-        nest   : Int -> Doc -> Doc
-        linebreak : Doc
+    -- let empty  : Doc
+    --     nest   : Int -> Doc -> Doc
+    --     linebreak : Doc
 
 -}
 fill : Int -> Doc -> Doc
@@ -706,11 +703,10 @@ then a linebreak is inserted and the nesting level is increased to given `Int`.
         |> align
         |> (|+) (string "let ")
 
-    -- when printed, will be rendered as:
-    let empty  : Doc
-        nest   : Int -> Doc -> Doc
-        linebreak
-               : Doc
+    -- let empty  : Doc
+    --     nest   : Int -> Doc -> Doc
+    --     linebreak
+    --            : Doc
 
 -}
 fillBreak : Int -> Doc -> Doc
@@ -1083,8 +1079,8 @@ toString doc =
 
 {-| Converts a Doc into a NormalForm, which is just the intermediate data structure between Doc and
 String. This function also takes a ribbon width and a page width. Where the ribbon width indicates the
-max percentage of non-indentation characters that should appear on a line, and the page width is the
-max number of total characters that can be on a single line. Can be used in combination with `display` to
+max _percentage_ of non-indentation characters that should appear on a line, and the page width is the
+max number of _total_ characters that can be on a single line. Can be used in combination with `display` to
 convert a Doc to a String with more customization on the width than using the default `toString` function.
 
     let
@@ -1092,16 +1088,16 @@ convert a Doc to a String with more customization on the width than using the de
           string "list"
               |+ list (List.map int [10, 200, 3000])
     in
+        -- ribbon width of 20
         display (renderPretty 0.25 80 doc)
-        -- when rendered, will render with a ribbon width of 20
-        list [10,200,3000]
+        -- list [10,200,3000]
 
 
+        -- ribbon width of 16
         display (renderPretty 0.2 80 doc)
-        -- when rendered, will render with a ribbon width of 16
-        list [10
-             ,200
-             ,3000]
+        -- list [10
+        --      ,200
+        --      ,3000]
 
 -}
 renderPretty : Float -> Int -> Doc -> NormalForm

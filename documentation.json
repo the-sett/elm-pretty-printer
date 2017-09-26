@@ -1,1 +1,471 @@
-[]
+[
+  {
+    "name": "Doc",
+    "comment": " A pretty printing library based off of the the [paper by Philip Wadler][paper].\nRight now this library is geared to print to the terminal, so users must pass the content they wish to pretty print as\nthe first argument of `Debug.log` in order for the text to be rendered as expected. **The comments underneath each example\nis what Debug.log will render after the Doc is converted to a String**. In the future I intend to add functionality that will allow pretty printing as Html.\n\n[paper]: https://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf\n\n\n# Basics\n\n@docs Doc, string, char, int, float, bool, space, empty\n\n\n# Combining Docs\n\n@docs append, (|+), join, concat\n\n\n# Lines\n\n@docs group, line, linebreak, softline, softbreak\n\n\n# Bracketing\n\n@docs surround, squotes, dquotes, parens, angles, brackets, braces, surroundJoin, list\n\n\n# Alignment\n\n@docs align, hang, indent, nest, column\n\n\n# Fillers\n\n@docs fill, fillBreak\n\n\n# Colors\n\n@docs Color, Formatter, black, red, darkRed, green, darkGreen, yellow, darkYellow, blue, darkBlue, magenta, darkMagenta, cyan, darkCyan, white, darkWhite, onRed, onWhite, onBlue, onYellow, onCyan, onGreen, onBlack, onMagenta\n\n\n# Formatting\n\n@docs bold, debold, underline, deunderline, plain\n\n\n# Rendering\n\n@docs NormalForm, TextFormat, renderPretty, toString, display\n\n",
+    "aliases": [
+      {
+        "name": "Formatter",
+        "comment": " Type alias for a function that knows how to take a String and return a new String with some\nsort of formatting. Right now formatting can either be color, bold, or underline.\n",
+        "args": [],
+        "type": "String -> String"
+      }
+    ],
+    "types": [
+      {
+        "name": "Color",
+        "comment": " Different ANSI Colors that can be displayed. Many have dark variations as well. Colors may come out differently\ndepending on your terminal.\n",
+        "args": [],
+        "cases": [
+          [
+            "Black",
+            [
+              "Doc.Formatter"
+            ]
+          ],
+          [
+            "Red",
+            [
+              "Doc.Formatter"
+            ]
+          ],
+          [
+            "Green",
+            [
+              "Doc.Formatter"
+            ]
+          ],
+          [
+            "Yellow",
+            [
+              "Doc.Formatter"
+            ]
+          ],
+          [
+            "Blue",
+            [
+              "Doc.Formatter"
+            ]
+          ],
+          [
+            "Magenta",
+            [
+              "Doc.Formatter"
+            ]
+          ],
+          [
+            "Cyan",
+            [
+              "Doc.Formatter"
+            ]
+          ],
+          [
+            "White",
+            [
+              "Doc.Formatter"
+            ]
+          ]
+        ]
+      },
+      {
+        "name": "Doc",
+        "comment": " Serves as a representation of what can be rendered. Can be combined, aligned, and formatted in many ways.\n",
+        "args": [],
+        "cases": []
+      },
+      {
+        "name": "NormalForm",
+        "comment": " NormalForm is the intermediate data structure between Doc and String.\n",
+        "args": [],
+        "cases": [
+          [
+            "Failure",
+            []
+          ],
+          [
+            "Blank",
+            []
+          ],
+          [
+            "Character",
+            [
+              "Char",
+              "Doc.NormalForm"
+            ]
+          ],
+          [
+            "TextElement",
+            [
+              "Int",
+              "String",
+              "Doc.NormalForm"
+            ]
+          ],
+          [
+            "Linebreak",
+            [
+              "Int",
+              "Doc.NormalForm"
+            ]
+          ],
+          [
+            "Formatted",
+            [
+              "List Doc.TextFormat",
+              "Doc.NormalForm"
+            ]
+          ]
+        ]
+      },
+      {
+        "name": "TextFormat",
+        "comment": " Different formats that a text element can take on.\n",
+        "args": [],
+        "cases": [
+          [
+            "WithColor",
+            [
+              "Doc.ConsoleLayer",
+              "Doc.Color"
+            ]
+          ],
+          [
+            "WithUnderline",
+            [
+              "Doc.Formatter"
+            ]
+          ],
+          [
+            "WithBold",
+            [
+              "Doc.Formatter"
+            ]
+          ],
+          [
+            "Reset",
+            []
+          ]
+        ]
+      }
+    ],
+    "values": [
+      {
+        "name": "align",
+        "comment": " Sets the nesting level of the given Doc equal to the current column. This vertically aligns the\nDoc elements so that they move as a single column.\n\n    string \"old\"\n        |+ line\n        |+ string \"friend\"\n        |> align\n        |> (|+) (string \"hello \")\n    -- hello old\n    --       friend\n\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "angles",
+        "comment": " Surrounds a Doc in angle brackets\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "append",
+        "comment": " Append two Docs together\n\n    append (string \"hello \") (string \"world\")\n    -- hello world\n\n",
+        "type": "Doc.Doc -> Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "black",
+        "comment": " Changes text color of Doc to black. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "blue",
+        "comment": " Changes text color of Doc to blue. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "bold",
+        "comment": " Takes a Doc and bolds all the text. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "bool",
+        "comment": " Create a Doc from a Bool.\n\n    bool True\n    -- True\n\n",
+        "type": "Bool -> Doc.Doc"
+      },
+      {
+        "name": "braces",
+        "comment": " Surrounds a Doc in curly braces\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "brackets",
+        "comment": " Surrounds a Doc in square brackets\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "char",
+        "comment": " Creates a Doc from a Char.\n\n    char '!'\n    -- !\n\n",
+        "type": "Char -> Doc.Doc"
+      },
+      {
+        "name": "column",
+        "comment": " Creates a Doc from an `(Int -> Doc)` function where the `Int` is the current column, or the\nrightmost position (in characters) on the current line. So `string \"hello\"` has a current column of `5`.\n\nThe Doc that gets returned from the given function will get placed at the current column.\nIf you don't need fine-grain control over where elements will be placed, `align` or `fill` would be a better alternative.\n\n    string \"hello\"\n        |+ column (\\col -> indent col (string \"from afar\"))\n    -- hello     from afar\n\n",
+        "type": "(Int -> Doc.Doc) -> Doc.Doc"
+      },
+      {
+        "name": "concat",
+        "comment": " Concatenates many Docs into one.\n\n    [\"how\", \"now\", \"brown\", \"cow?\"]\n        |> List.map string\n        |> concat\n    -- hownowbrowncow?\n\n",
+        "type": "List Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "cyan",
+        "comment": " Changes text color of Doc to cyan. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "darkBlue",
+        "comment": " Changes text color of Doc to dark blue. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "darkCyan",
+        "comment": " Changes text color of Doc to dark cyan. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "darkGreen",
+        "comment": " Changes text color of Doc to dark green. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "darkMagenta",
+        "comment": " Changes text color of Doc to dark magenta. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "darkRed",
+        "comment": " Changes text color of Doc to dark red. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "darkWhite",
+        "comment": " Changes text color of Doc to dark white. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "darkYellow",
+        "comment": " Changes text color of Doc to dark yellow. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "debold",
+        "comment": " Removes all bold formatting from a Doc while keeping other formatting.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "deunderline",
+        "comment": " Removes all underlining from a Doc while keeping other formatting.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "display",
+        "comment": " Takes a NormalForm and converts it to a Maybe String\n",
+        "type": "Doc.NormalForm -> Maybe.Maybe String"
+      },
+      {
+        "name": "dquotes",
+        "comment": " Surrounds a Doc in double quotes\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "empty",
+        "comment": " An empty Doc element.\n\n    empty\n    -- \"\"\n\n",
+        "type": "Doc.Doc"
+      },
+      {
+        "name": "fill",
+        "comment": " Takes an Int and a Doc and appends spaces to the end of the Doc until the current\ncolumn is equal to the given Int.\n\n    fill 12 (string \"how now\")\n        |+ string \"brown cow?\"\n    -- how now     brown cow?\n\nIf current column is greater than the given Int, nothing is appended.\n\n    fill 5 (string \"how now\")\n        |+ string \"brown cow?\"\n    -- how nowbrown cow?\n\nThis can be especially useful with `align` to represent type signatures\n\n    let\n        types =\n            [ ( \"empty\", \"Doc\" )\n            , ( \"nest\", \"Int -> Doc -> Doc\" )\n            , ( \"linebreak\", \"Doc\" )\n            ]\n\n        asAnnotation ( name, typeOf ) =\n            fill 6 (string name)\n                |+ string \" : \"\n                |+ string typeOf\n    in\n    List.map asAnnotation types\n        |> join linebreak\n        |> align\n        |> (|+) (string \"let \")\n\n    -- let empty  : Doc\n    --     nest   : Int -> Doc -> Doc\n    --     linebreak : Doc\n\n",
+        "type": "Int -> Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "fillBreak",
+        "comment": " Works the same way as `fill`, except that if the current column is greater than the given `Int`,\nthen a linebreak is inserted and the nesting level is increased to given `Int`.\n\n    let\n        types =\n            [ ( \"empty\", \"Doc\" )\n            , ( \"nest\", \"Int -> Doc -> Doc\" )\n            , ( \"linebreak\", \"Doc\" )\n            ]\n\n        asAnnotation ( name, typeOf ) =\n            fillBreak 6 (string name)\n                |+ string \" : \"\n                |+ string typeOf\n    in\n    List.map asAnnotation types\n        |> join linebreak\n        |> align\n        |> (|+) (string \"let \")\n\n    -- let empty  : Doc\n    --     nest   : Int -> Doc -> Doc\n    --     linebreak\n    --            : Doc\n\n",
+        "type": "Int -> Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "float",
+        "comment": " Create a Doc from a Float.\n\n    float \"12.3456\"\n    -- 12.3456\n\n",
+        "type": "Float -> Doc.Doc"
+      },
+      {
+        "name": "green",
+        "comment": " Changes text color of Doc to green. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "group",
+        "comment": " Tries to put all elements of a Doc on the current line if it will fit\nthe width of the page. If everything cannot fit on the current line, then\nno changes are made.\n\n    string \"how now\"\n        |+ char '\\n'\n        |+ string \"brown cow?\"\n        |> group\n    -- how now brown cow?\n\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "hang",
+        "comment": " Applies hanging indentation equal to the given integer. Does not indent the first line.\n\n    [\"the\", \"hang\", \"combinator\", \"indents\", \"these\", \"words !\"]\n        |> List.map string\n        |> join softline\n        |> hang 4\n    -- the hang combinator indents\n    --     these words !\n\n",
+        "type": "Int -> Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "indent",
+        "comment": " Indents the entire Doc equal to the given number of spaces.\n\n    [\"the\", \"indent\", \"combinator\", \"indents\", \"these\", \"words !\"]\n        |> List.map string\n        |> join softline\n        |> indent 4\n    --     the indent combinator\n    --     indents these words !\n\n",
+        "type": "Int -> Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "int",
+        "comment": " Create a Doc from an Int.\n\n    int 3\n        |+ char 'D'\n    -- 3D\n\n",
+        "type": "Int -> Doc.Doc"
+      },
+      {
+        "name": "join",
+        "comment": " Puts many Docs together, separated by a given Doc.\n\n    [\"how\", \"now\", \"brown\", \"cow?\"]\n        |> List.map string\n        |> join (char ' ')\n    -- how now brown cow?\n\n",
+        "type": "Doc.Doc -> List Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "line",
+        "comment": " Doc that, when combined with other Doc elements, advances to the next line.\n\n    [\"how\", \"now\", \"brown\", \"cow?\"]\n        |> List.map string\n        |> join line\n    -- how\n    -- now\n    -- brown\n    -- cow\n\nWhen `group` is called on a Doc with a `line` element, it is replaced with spaces.\n\n    [\"how\", \"now\", \"brown\", \"cow?\"]\n        |> List.map string\n        |> join line\n        |> group\n    -- how now brown cow?\n\n",
+        "type": "Doc.Doc"
+      },
+      {
+        "name": "linebreak",
+        "comment": " Works the same way as `line`, except when `group` is called on a Doc with a `linebreak`\nelement, the `linebreak` is replaced with `empty`\n\n    [\"how\", \"now\", \"brown\", \"cow?\"]\n        |> List.map string\n        |> join linebreak\n        |> group\n    -- hownowbrowncow?\n\n",
+        "type": "Doc.Doc"
+      },
+      {
+        "name": "list",
+        "comment": " Render a list of Docs as a list.\n\n    list =\n      surroundJoin (char '[') (char ']') (char ',')\n\n    List.map int [10, 200, 3000]\n        |> list\n    -- [10,200,3000]\n\n",
+        "type": "List Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "magenta",
+        "comment": " Changes text color of Doc to magenta. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "nest",
+        "comment": " Creates a Doc with the current indentation level increased by the given `Int`.\n\n    nest 2 (string \"hello\" |+ line |+ string \"world\")\n        |+ line\n        |+ char '!'\n    -- hello\n    --  world\n    -- !\n\n",
+        "type": "Int -> Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "onBlack",
+        "comment": " Changes background color of Doc to black. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "onBlue",
+        "comment": " Changes background color of Doc to blue. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "onCyan",
+        "comment": " Changes background color of Doc to cyan. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "onGreen",
+        "comment": " Changes background color of Doc to green. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "onMagenta",
+        "comment": " Changes background color of Doc to magenta. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "onRed",
+        "comment": " Changes background color of Doc to red. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "onWhite",
+        "comment": " Changes background color of Doc to white. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "onYellow",
+        "comment": " Changes background color of Doc to yellow. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "parens",
+        "comment": " Surrounds a Doc in parentheses\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "plain",
+        "comment": " Removes all formatting from a Doc, including foreground (text) color, background color, underlining, and bold.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "red",
+        "comment": " Changes text color of Doc to red. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "renderPretty",
+        "comment": " Converts a Doc into a NormalForm, which is just the intermediate data structure between Doc and\nString. This function also takes a ribbon width and a page width. Where the ribbon width indicates the\nmax _percentage_ of non-indentation characters that should appear on a line, and the page width is the\nmax number of _total_ characters that can be on a single line. Can be used in combination with `display` to\nconvert a Doc to a String with more customization on the width than using the default `toString` function.\n\n    let\n        doc =\n          string \"list\"\n              |+ list (List.map int [10, 200, 3000])\n    in\n        -- ribbon width of 20\n        display (renderPretty 0.25 80 doc)\n        -- list [10,200,3000]\n\n\n        -- ribbon width of 16\n        display (renderPretty 0.2 80 doc)\n        -- list [10\n        --      ,200\n        --      ,3000]\n\n",
+        "type": "Float -> Int -> Doc.Doc -> Doc.NormalForm"
+      },
+      {
+        "name": "softbreak",
+        "comment": " Similar to `softline`, except it does not advance the current column if elements can\nfit on the same line.\n\n    [\"how\", \"now\", \"brown\", \"cow?\"]\n        |> List.map string\n        |> join softbreak\n    -- hownowbrowncow?\n\n",
+        "type": "Doc.Doc"
+      },
+      {
+        "name": "softline",
+        "comment": " Doc that, when combined with other Doc elements, advances a single space if the current\nline has room.\n\n    [\"how\", \"now\", \"brown\", \"cow?\"]\n        |> List.map string\n        |> join softline\n    -- how now brown cow?\n\nIf the elements cannot fit on the same line, then it advances to the next line.\n\n    string \"a really long string that might\"\n        |+ softline\n        |+ string \"not fit on one line\"\n    -- a really long string that might\n    -- not fit on one line\n\n",
+        "type": "Doc.Doc"
+      },
+      {
+        "name": "space",
+        "comment": " Doc element that represents a space\n\n    space =\n        char ' '\n\n",
+        "type": "Doc.Doc"
+      },
+      {
+        "name": "squotes",
+        "comment": " Surrounds a Doc in single quotes\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "string",
+        "comment": " Creates a Doc from a String.\n\n    string \"hello, world!\"\n    -- hello, world!\n\n",
+        "type": "String -> Doc.Doc"
+      },
+      {
+        "name": "surround",
+        "comment": " Surrounds a Doc with given Docs.\n\n    surround (char '#') (char '?') (string \"questionable\")\n    -- #questionable?\n\n",
+        "type": "Doc.Doc -> Doc.Doc -> Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "surroundJoin",
+        "comment": " Joins a List of Docs together with a given separator and surrounds it with given Docs.\n\n    List.map string [\"some\", \"html\", \"element\"]\n        |> surroundJoin (char '<') (char '>') (char '-')\n    -- <some-html-element>\n\nProvides a bit of extra formatting help by aligning elements (separator in front) if they cannot\nall fit on the same line.\n\n    [ \"a really long string\", \"another really long string\", \"a third really long string\" ]\n        |> List.map string\n        |> surroundJoin (char '[') (char ']') (char ',')\n        |> (|+) (string \"list \")\n    -- list [a really long string\n    --      ,another really long string\n    --      ,a third really long string]\n\n",
+        "type": "Doc.Doc -> Doc.Doc -> Doc.Doc -> List Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "toString",
+        "comment": " Takes a Doc and converts it to a string with a column width of 80 and a ribbon width of 32\n",
+        "type": "Doc.Doc -> Maybe.Maybe String"
+      },
+      {
+        "name": "underline",
+        "comment": " Takes a Doc and underlines all the text. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "white",
+        "comment": " Changes text color of Doc to white. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "yellow",
+        "comment": " Changes text color of Doc to yellow. May not be supported on all terminals.\n",
+        "type": "Doc.Doc -> Doc.Doc"
+      },
+      {
+        "name": "|+",
+        "comment": " Infix version of `append`\n\n    string \"hello \"\n        |+ string \"world\"\n    -- hello world\n\n",
+        "type": "Doc.Doc -> Doc.Doc -> Doc.Doc",
+        "associativity": "right",
+        "precedence": 6
+      }
+    ],
+    "generated-with-elm-version": "0.18.0"
+  }
+]
