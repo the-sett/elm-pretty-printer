@@ -1240,7 +1240,7 @@ renderFits doesItFit rfrac pageWidth doc =
                                             , Maybe.map WithUnderline underliner
                                             ]
                             in
-                            Formatted formats (best indent currCol fgColor bgColor boldFormatter underliner documents)
+                            Formatted formats (best indent currCol fgColor bgColor bold underliner documents)
 
         nicest indent currCol doc1 doc2 =
             let
