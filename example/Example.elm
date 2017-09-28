@@ -4,14 +4,10 @@ import Doc exposing ((|+), Doc)
 import Platform
 
 
-{-| TODO:
-
-  - change onSomeBackgroundColor to bgSomeBackgroundColor
-
--}
 port log : String -> Cmd msg
 
 
+main : Program Never () msg
 main =
     let
         _ =
@@ -67,20 +63,20 @@ nestedColorsSample =
 
 rwbBgSample : Doc
 rwbBgSample =
-    Doc.onRed (Doc.string "Red")
+    Doc.bgRed (Doc.string "Red")
         |+ Doc.string ", "
-        |+ Doc.onWhite (Doc.string "white")
+        |+ Doc.bgWhite (Doc.string "white")
         |+ Doc.string " and "
-        |+ Doc.onBlue (Doc.string "blue")
+        |+ Doc.bgBlue (Doc.string "blue")
         |+ Doc.char '!'
 
 
 nestedBgColorsSample : Doc
 nestedBgColorsSample =
     Doc.string "Nested "
-        |+ Doc.onYellow (Doc.string "colors")
+        |+ Doc.bgYellow (Doc.string "colors")
         |+ Doc.string " example"
-        |> Doc.onBlue
+        |> Doc.bgBlue
 
 
 nonColorFormattingSample : Doc

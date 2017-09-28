@@ -9,6 +9,14 @@ module Doc
         , align
         , angles
         , append
+        , bgBlack
+        , bgBlue
+        , bgCyan
+        , bgGreen
+        , bgMagenta
+        , bgRed
+        , bgWhite
+        , bgYellow
         , black
         , blue
         , bold
@@ -45,14 +53,6 @@ module Doc
         , list
         , magenta
         , nest
-        , onBlack
-        , onBlue
-        , onCyan
-        , onGreen
-        , onMagenta
-        , onRed
-        , onWhite
-        , onYellow
         , parens
         , plain
         , red
@@ -70,12 +70,9 @@ module Doc
         , yellow
         )
 
-{-| A pretty printing library based off of the the [paper by Philip Wadler][paper].
-Right now this library is geared to print to the terminal, so users must pass the content they wish to pretty print as
-the first argument of `Debug.log` in order for the text to be rendered as expected. **The comments underneath each example
-is what Debug.log will render after the Doc is converted to a String**. In the future I intend to add functionality that will allow pretty printing as Html.
-
-[paper]: https://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf
+{-| Functions for combining, formatting, and printing text. Because this library uses the terminal, the content you wish to print
+must be passed as the first argument of `Debug.log` in order to be rendered as expected.
+**The comments underneath each example is what Debug.log will render after the Doc is converted to a String**.
 
 
 # Basics
@@ -100,7 +97,7 @@ is what Debug.log will render after the Doc is converted to a String**. In the f
 
 # Alignment
 
-@docs align, hang, indent, nest, column
+@docs hang, indent, nest, column, align
 
 
 # Fillers
@@ -110,7 +107,7 @@ is what Debug.log will render after the Doc is converted to a String**. In the f
 
 # Colors
 
-@docs Color, Formatter, black, red, darkRed, green, darkGreen, yellow, darkYellow, blue, darkBlue, magenta, darkMagenta, cyan, darkCyan, white, darkWhite, onRed, onWhite, onBlue, onYellow, onCyan, onGreen, onBlack, onMagenta
+@docs Color, Formatter, black, red, darkRed, green, darkGreen, yellow, darkYellow, blue, darkBlue, magenta, darkMagenta, cyan, darkCyan, white, darkWhite, bgRed, bgWhite, bgBlue, bgYellow, bgCyan, bgGreen, bgBlack, bgMagenta
 
 
 # Formatting
@@ -129,7 +126,8 @@ import Console as Ansi
 import Utils
 
 
-{-| Serves as a representation of what can be rendered. Can be combined, aligned, and formatted in many ways.
+{-| Data structure that wraps the text you eventually wish to print. Docs can be
+combined, formatted, and aligned in many ways.
 -}
 type Doc
     = Fail
@@ -162,8 +160,8 @@ type alias Formatter =
     String -> String
 
 
-{-| Different ANSI Colors that can be displayed. Many have dark variations as well. Colors may come out differently
-depending on your terminal.
+{-| Different ANSI Colors that can be displayed. Dark variations are available for foreground text.
+Colors may come out differently depending on your terminal.
 -}
 type Color
     = Black Formatter
@@ -265,7 +263,7 @@ empty =
     Empty
 
 
-{-| Doc element that represents a space
+{-| Convenience function for representing a space.
 
     space =
         char ' '
@@ -276,7 +274,7 @@ space =
     Char ' '
 
 
-{-| Doc that, when combined with other Doc elements, advances to the next line.
+{-| Doc that advances to the next line when combined with other Doc elements.
 
     ["how", "now", "brown", "cow?"]
         |> List.map string
@@ -315,7 +313,7 @@ linebreak =
     FlatAlt Line Empty
 
 
-{-| Doc that, when combined with other Doc elements, advances a single space if the current
+{-| Doc that advances a single space when combined with other Doc elements, but only if the current
 line has room.
 
     ["how", "now", "brown", "cow?"]
@@ -337,7 +335,7 @@ softline =
     group line
 
 
-{-| Works the same way `softline`, except it separates with `empty` if elements can
+{-| Works the same way as `softline`, except it separates with `empty` if elements can
 fit on the same line.
 
     ["how", "now", "brown", "cow?"]
@@ -422,12 +420,13 @@ bool =
 {-| Creates a Doc from an `(Int -> Doc)` function where the `Int` is the current column, or the
 rightmost position (in characters) on the current line. So `string "hello"` has a current column of `5`.
 
-The Doc that gets returned from the given function will get placed at the current column.
-If you don't need fine-grain control over where elements will be placed, `align` or `fill` would be a better alternative.
-
     string "hello"
         |+ column (\col -> indent col (string "from afar"))
     -- hello     from afar
+
+This is useful if you need to know the current column in order to do some sort of combination.
+However if you don't need fine-grain control over where elements will be placed, `align`
+or `fill` might serve as a better alternative.
 
 -}
 column : (Int -> Doc) -> Doc
@@ -445,7 +444,8 @@ nesting =
     Nesting
 
 
-{-| Creates a Doc with the current indentation level increased by the given `Int`.
+{-| Creates a Doc where the nesting level (the number of indented spaces of bottom-most line)
+is increased by the given `Int`.
 
     nest 2 (string "hello" |+ line |+ string "world")
         |+ line
@@ -464,8 +464,8 @@ nest =
 -- ALIGNMENT
 
 
-{-| Sets the nesting level of the given Doc equal to the current column. This vertically aligns the
-Doc elements so that they move as a single column.
+{-| Sets the nesting level of the given Doc to the current column. This vertically aligns
+the Doc so that it moves as a single column.
 
     string "old"
         |+ line
@@ -600,7 +600,7 @@ braces =
     surround (char '{') (char '}')
 
 
-{-| Joins a List of Docs together with a given separator and surrounds it with given Docs.
+{-| Joins a List of Docs together with a given separator, then surrounds the result with the first two arguments.
 
     List.map string ["some", "html", "element"]
         |> surroundJoin (char '<') (char '>') (char '-')
@@ -612,7 +612,7 @@ all fit on the same line.
     [ "a really long string", "another really long string", "a third really long string" ]
         |> List.map string
         |> surroundJoin (char '[') (char ']') (char ',')
-        |> (|+) (string "list ")
+        |> append (string "list ")
     -- list [a really long string
     --      ,another really long string
     --      ,a third really long string]
@@ -639,7 +639,7 @@ surroundJoin left right sep docs =
                 |> align
 
 
-{-| Render a list of Docs as a list.
+{-| Render a list of Docs as a comma separated list.
 
     list =
       surroundJoin (char '[') (char ']') (char ',')
@@ -764,105 +764,105 @@ color =
     Color Foreground
 
 
-{-| Changes text color of Doc to black. May not be supported on all terminals.
+{-| Changes text color of Doc to black.
 -}
 black : Doc -> Doc
 black =
     color (Black Ansi.black)
 
 
-{-| Changes text color of Doc to red. May not be supported on all terminals.
+{-| Changes text color of Doc to red.
 -}
 red : Doc -> Doc
 red =
     color (Red Ansi.red)
 
 
-{-| Changes text color of Doc to dark red. May not be supported on all terminals.
+{-| Changes text color of Doc to dark red.
 -}
 darkRed : Doc -> Doc
 darkRed =
     color <| Red (Ansi.dark << Ansi.red)
 
 
-{-| Changes text color of Doc to green. May not be supported on all terminals.
+{-| Changes text color of Doc to green.
 -}
 green : Doc -> Doc
 green =
     color (Green Ansi.green)
 
 
-{-| Changes text color of Doc to dark green. May not be supported on all terminals.
+{-| Changes text color of Doc to dark green.
 -}
 darkGreen : Doc -> Doc
 darkGreen =
     color <| Green (Ansi.dark << Ansi.green)
 
 
-{-| Changes text color of Doc to yellow. May not be supported on all terminals.
+{-| Changes text color of Doc to yellow.
 -}
 yellow : Doc -> Doc
 yellow =
     color (Yellow Ansi.yellow)
 
 
-{-| Changes text color of Doc to dark yellow. May not be supported on all terminals.
+{-| Changes text color of Doc to dark yellow.
 -}
 darkYellow : Doc -> Doc
 darkYellow =
     color <| Yellow (Ansi.dark << Ansi.yellow)
 
 
-{-| Changes text color of Doc to blue. May not be supported on all terminals.
+{-| Changes text color of Doc to blue.
 -}
 blue : Doc -> Doc
 blue =
     color (Blue Ansi.blue)
 
 
-{-| Changes text color of Doc to dark blue. May not be supported on all terminals.
+{-| Changes text color of Doc to dark blue.
 -}
 darkBlue : Doc -> Doc
 darkBlue =
     color <| Blue (Ansi.dark << Ansi.blue)
 
 
-{-| Changes text color of Doc to magenta. May not be supported on all terminals.
+{-| Changes text color of Doc to magenta.
 -}
 magenta : Doc -> Doc
 magenta =
     color (Magenta Ansi.magenta)
 
 
-{-| Changes text color of Doc to dark magenta. May not be supported on all terminals.
+{-| Changes text color of Doc to dark magenta.
 -}
 darkMagenta : Doc -> Doc
 darkMagenta =
     color <| Magenta (Ansi.dark << Ansi.magenta)
 
 
-{-| Changes text color of Doc to cyan. May not be supported on all terminals.
+{-| Changes text color of Doc to cyan.
 -}
 cyan : Doc -> Doc
 cyan =
     color (Cyan Ansi.cyan)
 
 
-{-| Changes text color of Doc to dark cyan. May not be supported on all terminals.
+{-| Changes text color of Doc to dark cyan.
 -}
 darkCyan : Doc -> Doc
 darkCyan =
     color <| Cyan (Ansi.dark << Ansi.cyan)
 
 
-{-| Changes text color of Doc to white. May not be supported on all terminals.
+{-| Changes text color of Doc to white.
 -}
 white : Doc -> Doc
 white =
     color (White Ansi.white)
 
 
-{-| Changes text color of Doc to dark white. May not be supported on all terminals.
+{-| Changes text color of Doc to dark white.
 -}
 darkWhite : Doc -> Doc
 darkWhite =
@@ -874,59 +874,59 @@ bgColor =
     Color Background
 
 
-{-| Changes background color of Doc to red. May not be supported on all terminals.
+{-| Changes background color of Doc to red.
 -}
-onRed : Doc -> Doc
-onRed =
+bgRed : Doc -> Doc
+bgRed =
     bgColor (Red Ansi.bgRed)
 
 
-{-| Changes background color of Doc to white. May not be supported on all terminals.
+{-| Changes background color of Doc to white.
 -}
-onWhite : Doc -> Doc
-onWhite =
+bgWhite : Doc -> Doc
+bgWhite =
     bgColor (White Ansi.bgWhite)
 
 
-{-| Changes background color of Doc to blue. May not be supported on all terminals.
+{-| Changes background color of Doc to blue.
 -}
-onBlue : Doc -> Doc
-onBlue =
+bgBlue : Doc -> Doc
+bgBlue =
     bgColor (Blue Ansi.bgBlue)
 
 
-{-| Changes background color of Doc to yellow. May not be supported on all terminals.
+{-| Changes background color of Doc to yellow.
 -}
-onYellow : Doc -> Doc
-onYellow =
+bgYellow : Doc -> Doc
+bgYellow =
     bgColor (Yellow Ansi.bgYellow)
 
 
-{-| Changes background color of Doc to cyan. May not be supported on all terminals.
+{-| Changes background color of Doc to cyan.
 -}
-onCyan : Doc -> Doc
-onCyan =
+bgCyan : Doc -> Doc
+bgCyan =
     bgColor (Cyan Ansi.bgCyan)
 
 
-{-| Changes background color of Doc to green. May not be supported on all terminals.
+{-| Changes background color of Doc to green.
 -}
-onGreen : Doc -> Doc
-onGreen =
+bgGreen : Doc -> Doc
+bgGreen =
     bgColor (Green Ansi.bgGreen)
 
 
-{-| Changes background color of Doc to black. May not be supported on all terminals.
+{-| Changes background color of Doc to black.
 -}
-onBlack : Doc -> Doc
-onBlack =
+bgBlack : Doc -> Doc
+bgBlack =
     bgColor (Black Ansi.bgBlack)
 
 
-{-| Changes background color of Doc to magenta. May not be supported on all terminals.
+{-| Changes background color of Doc to magenta.
 -}
-onMagenta : Doc -> Doc
-onMagenta =
+bgMagenta : Doc -> Doc
+bgMagenta =
     bgColor (Magenta Ansi.bgMagenta)
 
 
@@ -934,7 +934,8 @@ onMagenta =
 -- FORMATTING
 
 
-{-| Takes a Doc and bolds all the text. May not be supported on all terminals.
+{-| Takes a Doc and bolds all the text. Some terminals implement this as a color change rather
+than a boldness change.
 -}
 bold : Doc -> Doc
 bold =
@@ -1126,7 +1127,7 @@ convert a Doc to a String with more customization on the width than using the de
 -}
 renderPretty : Float -> Int -> Doc -> NormalForm
 renderPretty =
-    renderFits willFit1
+    renderFits willFit
 
 
 renderFits :
@@ -1255,8 +1256,8 @@ renderFits doesItFit rfrac pageWidth doc =
     best 0 0 Nothing Nothing Nothing Nothing (Cons 0 doc Nil)
 
 
-willFit1 : Int -> Int -> Int -> NormalForm -> Bool
-willFit1 pageWidth minNestingLvl firstLineWidth simpleDoc =
+willFit : Int -> Int -> Int -> NormalForm -> Bool
+willFit pageWidth minNestingLvl firstLineWidth simpleDoc =
     if firstLineWidth < 0 then
         False
     else
@@ -1268,16 +1269,16 @@ willFit1 pageWidth minNestingLvl firstLineWidth simpleDoc =
                 True
 
             Character char sDoc ->
-                willFit1 pageWidth minNestingLvl (firstLineWidth - 1) sDoc
+                willFit pageWidth minNestingLvl (firstLineWidth - 1) sDoc
 
             TextElement width content sDoc ->
-                willFit1 pageWidth minNestingLvl (firstLineWidth - width) sDoc
+                willFit pageWidth minNestingLvl (firstLineWidth - width) sDoc
 
             Linebreak width sDoc ->
                 True
 
             Formatted _ sDoc ->
-                willFit1 pageWidth minNestingLvl firstLineWidth sDoc
+                willFit pageWidth minNestingLvl firstLineWidth sDoc
 
 
 {-| Takes a NormalForm and converts it to a `Result String String`

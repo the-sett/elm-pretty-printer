@@ -61,14 +61,14 @@ suite =
                     \_ ->
                         let
                             result =
-                                onRed (string "Red")
+                                bgRed (string "Red")
                                     |+ char ','
                                     |+ space
-                                    |+ onWhite (string "white")
+                                    |+ bgWhite (string "white")
                                     |+ space
                                     |+ string "and"
                                     |+ space
-                                    |+ onBlue (string "blue")
+                                    |+ bgBlue (string "blue")
                                     |+ char '!'
 
                             expected =
@@ -86,9 +86,9 @@ suite =
                     \_ ->
                         let
                             result =
-                                onBlue <|
+                                bgBlue <|
                                     string "Nested "
-                                        |+ onYellow (string "colors")
+                                        |+ bgYellow (string "colors")
                                         |+ space
                                         |+ string "example"
 
@@ -245,7 +245,7 @@ suite =
                     \_ ->
                         let
                             result =
-                                onWhite <|
+                                bgWhite <|
                                     string "this is"
                                         |+ space
                                         |+ red (string "red text")
@@ -265,7 +265,7 @@ suite =
                     \_ ->
                         let
                             result =
-                                onCyan <|
+                                bgCyan <|
                                     string "this is "
                                         |+ bold (string "bold text")
                                         |+ space
@@ -284,7 +284,7 @@ suite =
                     \_ ->
                         let
                             result =
-                                onBlue <|
+                                bgBlue <|
                                     string "this is"
                                         |+ space
                                         |+ black (underline (string "black underlined text"))
@@ -306,7 +306,7 @@ suite =
                 \_ ->
                     let
                         result =
-                            onBlue <|
+                            bgBlue <|
                                 string "this is "
                                     |+ red (underline (string "red underlined text"))
                                     |+ space
