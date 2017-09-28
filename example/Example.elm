@@ -14,17 +14,21 @@ main =
             Doc.string "You can use "
                 |+ Doc.bold (Doc.string "Debug.log")
                 |+ Doc.string " to print text"
+                |> Doc.append Doc.line
+                |> Doc.append (dividerText "PRINTING")
                 |> Doc.toString
                 |> Result.map (\doc -> Debug.log doc ())
 
         samples =
-            [ divider
+            [ dividerText "COLORS & FORMATTING"
             , rwbSample
             , nestedColorsSample
             , rwbBgSample
             , nestedBgColorsSample
             , nonColorFormattingSample
-            , divider
+            , dividerText "ALIGNMENT"
+            , jsonSample
+            , dividerText "ENJOY!"
             ]
 
         doc =
@@ -87,8 +91,57 @@ nonColorFormattingSample =
         |+ Doc.underline (Doc.string "underlining")
 
 
-divider : Doc
-divider =
-    String.repeat 80 "-"
-        |> Doc.string
-        |> Doc.cyan
+prettyKeyVal : ( String, String ) -> Doc
+prettyKeyVal ( attr, value ) =
+    let
+        prettyAttr =
+            Doc.string attr
+                |> Doc.red
+                |> Doc.bold
+                |> Doc.dquotes
+    in
+    Doc.fill 12 prettyAttr
+        |+ Doc.fill 4 (Doc.string ": ")
+        |+ Doc.dquotes (Doc.green (Doc.string value))
+
+
+jsonSample : Doc
+jsonSample =
+    sampleJsonData
+        |> List.map prettyKeyVal
+        |> Doc.join (Doc.char ',' |+ Doc.line)
+        |> Doc.align
+        |> Doc.indent 4
+        |> Doc.surround Doc.line Doc.line
+        |> Doc.braces
+
+
+sampleJsonData : List ( String, String )
+sampleJsonData =
+    [ ( "full_name", "Bill Johnson" )
+    , ( "address", "123 Fake St" )
+    , ( "role", "admin" )
+    ]
+
+
+dividerText : String -> Doc
+dividerText txt =
+    let
+        room =
+            floor <|
+                toFloat (String.length txt)
+                    / 2
+
+        divider =
+            String.repeat (40 - room) "-"
+                |> Doc.string
+                |> Doc.cyan
+
+        surrounders =
+            [ Doc.space, divider, Doc.line ]
+    in
+    Doc.string txt
+        |> Doc.yellow
+        |> Doc.surround
+            (Doc.concat (List.reverse surrounders))
+            (Doc.concat surrounders)
