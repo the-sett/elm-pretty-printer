@@ -1,4 +1,12 @@
-module Utils exposing (..)
+module Utils
+    exposing
+        ( foldr1
+        , hasWhitespace
+        , spaces
+        , splitOnWhitespace
+        )
+
+import Regex
 
 
 spaces : Int -> String
@@ -21,38 +29,25 @@ foldr1 f xs =
     List.foldr foldMaybes Nothing xs
 
 
-break : (Char -> Bool) -> String -> ( String, String )
-break pred str =
-    let
-        toSplit =
-            not << pred
-    in
-    ( takeWhile toSplit str, dropWhile toSplit str )
+splitOnWhitespace : String -> List String
+splitOnWhitespace =
+    Regex.split Regex.All (Regex.regex regexWhitespace)
 
 
-takeWhile : (Char -> Bool) -> String -> String
-takeWhile shouldTake str =
-    let
-        take1 ( head, rest ) =
-            if shouldTake head then
-                String.cons head (takeWhile shouldTake rest)
-            else
-                ""
-    in
-    String.uncons str
-        |> Maybe.map take1
-        |> Maybe.withDefault ""
+hasWhitespace : String -> Bool
+hasWhitespace =
+    Regex.contains (Regex.regex regexWhitespace)
 
 
-dropWhile : (Char -> Bool) -> String -> String
-dropWhile shouldDrop str =
-    let
-        drop1 ( head, rest ) =
-            if shouldDrop head then
-                dropWhile shouldDrop rest
-            else
-                String.cons head rest
-    in
-    String.uncons str
-        |> Maybe.map drop1
-        |> Maybe.withDefault ""
+regexWhitespace : String
+regexWhitespace =
+    whitespace
+        |> List.map ((++) "\\")
+        |> String.join "|"
+        |> (++) "("
+        |> flip (++) ")"
+
+
+whitespace : List String
+whitespace =
+    [ "\n", "\t", " " ]

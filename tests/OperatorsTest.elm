@@ -1,70 +1,85 @@
 module OperatorsTest exposing (..)
 
+import Doc exposing (..)
 import Expect exposing (Expectation)
-import Render
 import Test exposing (..)
-import Text exposing (..)
 
 
 suite : Test
 suite =
     describe "Operators"
-        [ describe "<+>"
-            [ test "it combines 2 docs with a space" <|
+        [ describe "<$> - line"
+            [ test "it separates elements with a linebreak" <|
                 \_ ->
-                    let
-                        doc1 =
-                            text "Hello,"
-
-                        doc2 =
-                            text "World!"
-                    in
-                    (doc1 <+> doc2)
-                        |> Render.show
-                        |> Expect.equal "Hello, World!"
+                    string "hello"
+                        |+ line
+                        |+ string "world"
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "hello\nworld")
+                        |> Result.withDefault (Expect.fail "Failure in result")
+            , test "it puts a SPACE between elements when undone by group" <|
+                \_ ->
+                    string "hello"
+                        |+ line
+                        |+ string "world"
+                        |> group
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "hello world")
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
-        , describe "<$>"
-            [ test "it separates elements with a hardbreak" <|
+        , describe "<$$> - linebreak"
+            [ test "advances to next line" <|
                 \_ ->
-                    (text "hello" <$> text "world")
-                        |> Render.show
-                        |> Expect.equal "hello\nworld"
-            ]
-        , describe "</>"
-            [ test "it concats with a softline (space if it will fit)" <|
-                \_ ->
-                    (text "hello" </> text "world")
-                        |> Render.show
-                        |> Expect.equal "hello world"
-            , test "it concats with a softline (break if it will not fit on line)" <|
-                \_ ->
-                    (text "a really long string that might" </> text "not fit on one line")
-                        |> Render.show
-                        |> Expect.equal "a really long string that might\nnot fit on one line"
-            ]
-        , describe "<$$>"
-            [ test "it concats with a linebreak in between - (advances to next line)" <|
-                \_ ->
-                    (text "hello" <$$> text "world")
-                        |> Render.show
-                        |> Expect.equal "hello\nworld"
+                    string "hello"
+                        |+ linebreak
+                        |+ string "world"
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "hello\nworld")
+                        |> Result.withDefault (Expect.fail "Failure in result")
             , test "it puts elements right next to each other when undone by group" <|
                 \_ ->
-                    (text "hello" <$$> text "world")
+                    string "hello"
+                        |+ linebreak
+                        |+ string "world"
                         |> group
-                        |> Render.show
-                        |> Expect.equal "helloworld"
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "helloworld")
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
-        , describe "<//>"
-            [ test "it concats with a softbreak (directly next to each other if it fits)" <|
+        , describe "</> - softline"
+            [ test "it separates elements with a space if they can fit on same line" <|
                 \_ ->
-                    (text "hello" <//> text "world")
-                        |> Render.show
-                        |> Expect.equal "helloworld"
-            , test "it concats with a linebreak if it will not fit on line" <|
+                    string "hello"
+                        |+ softline
+                        |+ string "world"
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "hello world")
+                        |> Result.withDefault (Expect.fail "Failure in result")
+            , test "it inserts a break if both will not fit on same line" <|
                 \_ ->
-                    (text "a really long string that might" <//> text "not fit on one line")
-                        |> Render.show
-                        |> Expect.equal "a really long string that might\nnot fit on one line"
+                    string "a really long string that might"
+                        |+ softline
+                        |+ string "not fit on one line"
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "a really long string that might\nnot fit on one line")
+                        |> Result.withDefault (Expect.fail "Failure in result")
+            ]
+        , describe "<//> - softbreak"
+            [ test "it separates elements with nothing if they will fit on same line" <|
+                \_ ->
+                    string "hello"
+                        |+ softbreak
+                        |+ string "world"
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "helloworld")
+                        |> Result.withDefault (Expect.fail "Failure in result")
+            , test "it advances second element to next line if it will not fit on same line" <|
+                \_ ->
+                    string "a really long string that might"
+                        |+ softbreak
+                        |+ string "not fit on one line"
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "a really long string that might\nnot fit on one line")
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
         ]

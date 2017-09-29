@@ -1,9 +1,8 @@
 module FillersTest exposing (..)
 
+import Doc exposing (..)
 import Expect exposing (Expectation)
-import Render
 import Test exposing (..)
-import Text exposing (..)
 
 
 suite : Test
@@ -19,17 +18,21 @@ suite =
                             , ( "linebreak", "Doc" )
                             ]
 
-                        ptype ( name, tipe ) =
-                            fill 6 (text name) <+> text ":" <+> text tipe
+                        ptype ( name, typeOf ) =
+                            fill 6 (string name)
+                                |+ string " : "
+                                |+ string typeOf
 
                         expected =
                             "let empty  : Doc\n    nest   : Int -> Doc -> Doc\n    linebreak : Doc"
                     in
-                    vcat (List.map ptype types)
+                    List.map ptype types
+                        |> join linebreak
                         |> align
-                        |> (<+>) (text "let")
-                        |> Render.show
-                        |> Expect.equal expected
+                        |> (|+) (string "let ")
+                        |> Doc.toString
+                        |> Result.map (Expect.equal expected)
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
         , describe "fillBreak"
             [ test "same as fill, but inserts break and increase nesting to int if longer than int" <|
@@ -41,16 +44,20 @@ suite =
                             , ( "linebreak", "Doc" )
                             ]
 
-                        ptype ( name, tipe ) =
-                            fillBreak 6 (text name) <+> text ":" <+> text tipe
+                        ptype ( name, typeOf ) =
+                            fillBreak 6 (string name)
+                                |+ string " : "
+                                |+ string typeOf
 
                         expected =
                             "let empty  : Doc\n    nest   : Int -> Doc -> Doc\n    linebreak\n           : Doc"
                     in
-                    vcat (List.map ptype types)
+                    List.map ptype types
+                        |> join linebreak
                         |> align
-                        |> (<+>) (text "let")
-                        |> Render.show
-                        |> Expect.equal expected
+                        |> (|+) (string "let ")
+                        |> Doc.toString
+                        |> Result.map (Expect.equal expected)
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
         ]

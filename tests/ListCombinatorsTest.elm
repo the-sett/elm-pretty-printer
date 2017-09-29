@@ -1,154 +1,159 @@
 module ListCombinatorsTest exposing (..)
 
 import Console
+import Doc exposing (..)
 import Expect exposing (Expectation)
-import Render
 import Test exposing (..)
-import Text exposing (..)
 
 
 suite : Test
 suite =
     describe "List Combinators"
         [ describe "hsep"
-            [ test "it concatenates documents horizontally with <+>" <|
+            [ test "it concatenates documents horizontally with a space - PUBLIC" <|
                 \_ ->
                     let
                         words =
                             [ "how", "now", "brown", "cow?" ]
                     in
-                    hsep (List.map text words)
-                        |> Render.show
-                        |> Expect.equal "how now brown cow?"
+                    join space (List.map string words)
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "how now brown cow?")
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
         , describe "fillSep"
-            [ test "it concatenates documents horizontally with </>" <|
+            [ test "it concatenates documents horizontally with softline - PUBLIC" <|
                 \_ ->
                     let
                         words =
-                            [ "this is a long string", "another string", "third string", "banana" ]
+                            [ "where", "in", "the", "world", "is", "Carmen", "Sandiego?" ]
                     in
-                    fillSep (List.map text words)
-                        |> Render.show
-                        |> Expect.equal "this is a long string\nanother string third string\nbanana"
+                    join softline (List.map string words)
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "where in the world is Carmen\nSandiego?")
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
         , describe "vsep"
-            [ test "it concats doc elements vertically with <$>" <|
+            [ test "it concats doc elements vertically with line - PUBLIC" <|
                 \_ ->
                     let
                         someText =
-                            "text to lay out"
+                            "string to lay out"
                                 |> String.words
-                                |> List.map text
+                                |> List.map string
                     in
-                    (text "some" <+> vsep someText)
-                        |> Render.show
-                        |> Expect.equal "some text\nto\nlay\nout"
-            , test "it can be used in combination with align" <|
-                \_ ->
-                    let
-                        someText =
-                            "text to lay out"
-                                |> String.words
-                                |> List.map text
-                    in
-                    (text "some" <+> align (vsep someText))
-                        |> Render.show
-                        |> Expect.equal "some text\n     to\n     lay\n     out"
+                    string "some"
+                        |+ space
+                        |+ join line someText
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "some string\nto\nlay\nout")
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
         , describe "sep"
-            [ test "it takes elements on multiple lines and puts them on same line (separated by space)" <|
+            [ test "it puts elements on same line, separated by space - PUBLIC" <|
                 \_ ->
                     let
                         elements =
                             [ "how", "now", "brown", "cow?" ]
-                                |> List.map text
+                                |> List.map string
                     in
-                    sep elements
-                        |> Render.show
-                        |> Expect.equal "how now brown cow?"
-            , test "if it cannot put them all on same line, it puts them on separate lines" <|
+                    join line elements
+                        |> group
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "how now brown cow?")
+                        |> Result.withDefault (Expect.fail "Failure in result")
+            , test "if it cannot put them all on same line, it puts them on separate lines - PUBLIC" <|
                 \_ ->
                     let
                         words =
-                            [ "this is a long string", "another string", "third string", "banana" ]
+                            [ "where", "in", "the", "world", "is", "Carmen", "Sandiego?" ]
                     in
-                    sep (List.map text words)
-                        |> Render.show
-                        |> Expect.equal (String.join "\n" words)
+                    join line (List.map string words)
+                        |> group
+                        |> Doc.toString
+                        |> Result.map (Expect.equal (String.join "\n" words))
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
         , describe "hcat"
-            [ test "it concats elements horizontally with <>" <|
+            [ test "it concats elements horizontally with no space - PUBLIC" <|
                 \_ ->
                     let
                         words =
                             [ "hello", "world" ]
                     in
-                    hcat (List.map text words)
-                        |> Render.show
-                        |> Expect.equal "helloworld"
+                    Doc.concat (List.map string words)
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "helloworld")
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
         , describe "vcat"
-            [ test "it concats elements with <$$>" <|
+            [ test "it concats elements with linebreak - PUBLIC" <|
                 \_ ->
                     let
                         words =
                             [ "how", "now", "brown", "cow?" ]
                     in
-                    vcat (List.map text words)
-                        |> Render.show
-                        |> Expect.equal (String.join "\n" words)
+                    join linebreak (List.map string words)
+                        |> Doc.toString
+                        |> Result.map (Expect.equal (String.join "\n" words))
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
         , describe "fillCat"
-            [ test "it concatenates with a softbreak (directly next to each other)" <|
+            [ test "it concatenates with a softbreak (directly next to each other) - PUBLIC" <|
                 \_ ->
                     let
                         words =
                             [ "hello", "world" ]
                     in
-                    fillCat (List.map text words)
-                        |> Render.show
-                        |> Expect.equal "helloworld"
-            , test "it fits as many as it can on one line" <|
+                    join softbreak (List.map string words)
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "helloworld")
+                        |> Result.withDefault (Expect.fail "Failure in result")
+            , test "it fits as many as it can on one line - PUBLIC" <|
                 \_ ->
                     let
                         words =
                             [ "this is a long string", "another string", "third string", "banana" ]
                     in
-                    fillCat (List.map text words)
-                        |> Render.show
-                        |> Expect.equal "this is a long string\nanother stringthird stringbanana"
+                    join softbreak (List.map string words)
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "this is a long string\nanother stringthird stringbanana")
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
         , describe "cat"
-            [ test "concats horizontally with <> if fits page" <|
+            [ test "concats horizontally if fits page - PUBLIC" <|
                 \_ ->
                     let
                         words =
                             [ "hello", "world" ]
                     in
-                    cat (List.map text words)
-                        |> Render.show
-                        |> Expect.equal "helloworld"
-            , test "concats vertically with <$$> if it does not" <|
+                    join linebreak (List.map string words)
+                        |> group
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "helloworld")
+                        |> Result.withDefault (Expect.fail "Failure in result")
+            , test "concats vertically if it does not - PUBLIC" <|
                 \_ ->
                     let
                         words =
-                            [ "this is a long string", "another string", "third string", "banana" ]
+                            [ "what", "would", "you", "do", "if", "your", "son", "was", "at", "home?" ]
                     in
-                    cat (List.map text words)
-                        |> Render.show
-                        |> Expect.equal "this is a long string\nanother string\nthird string\nbanana"
+                    join linebreak (List.map string words)
+                        |> group
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "what\nwould\nyou\ndo\nif\nyour\nson\nwas\nat\nhome?")
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
         , describe "punctuate"
-            [ test "it concats all intersperses given document between elements" <|
+            [ test "it concats all intersperses given document between elements - PUBLIC" <|
                 \_ ->
                     let
                         words =
                             [ "how", "now", "brown", "cow?" ]
                     in
-                    punctuate comma (List.map text words)
-                        |> cat
-                        |> Render.show
-                        |> Expect.equal "how,now,brown,cow?"
+                    join (char ',') (List.map string words)
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "how,now,brown,cow?")
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
         ]

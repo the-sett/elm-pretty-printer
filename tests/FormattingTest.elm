@@ -1,10 +1,9 @@
 module FormattingTest exposing (..)
 
 import Console as Ansi
+import Doc exposing (..)
 import Expect exposing (Expectation)
-import Render
 import Test exposing (..)
-import Text exposing (..)
 
 
 suite : Test
@@ -17,12 +16,15 @@ suite =
                     \_ ->
                         let
                             result =
-                                red (text "Red")
-                                    <> comma
-                                    <+> white (text "white")
-                                    <+> text "and"
-                                    <+> blue (text "blue")
-                                    <> char '!'
+                                red (string "Red")
+                                    |+ char ','
+                                    |+ space
+                                    |+ white (string "white")
+                                    |+ space
+                                    |+ string "and"
+                                    |+ space
+                                    |+ blue (string "blue")
+                                    |+ char '!'
 
                             expected =
                                 Ansi.red "Red"
@@ -32,17 +34,26 @@ suite =
                                     ++ Ansi.blue "blue"
                                     ++ "!"
                         in
-                        Expect.equal expected (Render.show result)
+                        Doc.toString result
+                            |> Result.map (Expect.equal expected)
+                            |> Result.withDefault (Expect.fail "Failure in result")
                 , test "colors can be nested" <|
                     \_ ->
                         let
                             result =
-                                blue (text "Nested" <+> yellow (text "colors") <+> text "example")
+                                blue <|
+                                    string "Nested"
+                                        |+ space
+                                        |+ yellow (string "colors")
+                                        |+ space
+                                        |+ string "example"
 
                             expected =
                                 Ansi.blue "Nested" ++ Ansi.yellow " colors" ++ Ansi.blue " example"
                         in
-                        Expect.equal expected (Render.show result)
+                        Doc.toString result
+                            |> Result.map (Expect.equal expected)
+                            |> Result.withDefault (Expect.fail "Failure in result")
                 ]
         , skip <|
             describe "background colors"
@@ -50,12 +61,15 @@ suite =
                     \_ ->
                         let
                             result =
-                                onRed (text "Red")
-                                    <> comma
-                                    <+> onWhite (text "white")
-                                    <+> text "and"
-                                    <+> onBlue (text "blue")
-                                    <> char '!'
+                                bgRed (string "Red")
+                                    |+ char ','
+                                    |+ space
+                                    |+ bgWhite (string "white")
+                                    |+ space
+                                    |+ string "and"
+                                    |+ space
+                                    |+ bgBlue (string "blue")
+                                    |+ char '!'
 
                             expected =
                                 Ansi.bgRed "Red"
@@ -65,17 +79,25 @@ suite =
                                     ++ Ansi.bgBlue "blue"
                                     ++ "!"
                         in
-                        Expect.equal expected (Render.show result)
+                        Doc.toString result
+                            |> Result.map (Expect.equal expected)
+                            |> Result.withDefault (Expect.fail "Failure in result")
                 , test "colors can be nested" <|
                     \_ ->
                         let
                             result =
-                                onBlue (text "Nested" <+> onYellow (text "colors") <+> text "example")
+                                bgBlue <|
+                                    string "Nested "
+                                        |+ bgYellow (string "colors")
+                                        |+ space
+                                        |+ string "example"
 
                             expected =
                                 Ansi.bgBlue "Nested " ++ Ansi.bgYellow "colors" ++ Ansi.bgBlue " example"
                         in
-                        Expect.equal expected (Render.show result)
+                        Doc.toString result
+                            |> Result.map (Expect.equal expected)
+                            |> Result.withDefault (Expect.fail "Failure in result")
                 ]
         , skip <|
             describe "text intensity"
@@ -83,45 +105,53 @@ suite =
                     \_ ->
                         let
                             result =
-                                text "We can do"
-                                    <+> bold (text "boldness")
-                                    <+> text "if your terminal supports it."
+                                string "We can do "
+                                    |+ bold (string "boldness")
+                                    |+ space
+                                    |+ string "if your terminal supports it."
 
                             expected =
                                 "We can do "
                                     ++ Ansi.bold "boldness"
                                     ++ " if your terminal supports it."
                         in
-                        Expect.equal expected (Render.show result)
+                        Doc.toString result
+                            |> Result.map (Expect.equal expected)
+                            |> Result.withDefault (Expect.fail "Failure in result")
                 , test "it can debold text" <|
                     \_ ->
                         let
                             result =
-                                text "We can do"
-                                    <+> debold (bold (text "boldness"))
-                                    <+> text "if your terminal supports it."
+                                string "We can do "
+                                    |+ debold (bold (string "boldness"))
+                                    |+ space
+                                    |+ string "if your terminal supports it."
 
                             expected =
                                 "We can do boldness if your terminal supports it."
                         in
-                        Expect.equal expected (Render.show result)
+                        Doc.toString result
+                            |> Result.map (Expect.equal expected)
+                            |> Result.withDefault (Expect.fail "Failure in result")
                 , test "it can debold text with sporadic boldness and other formatting" <|
                     \_ ->
                         let
                             result =
                                 debold <|
                                     hang 2 <|
-                                        text "I had some"
-                                            <+> bold (text "bold text")
-                                            <> comma
-                                            <+> text "but not"
-                                            <+> bold (text "anymore")
-                                            <> text "!"
+                                        string "I had some "
+                                            |+ bold (string "bold text")
+                                            |+ char ','
+                                            |+ string " but not "
+                                            |+ bold (string "anymore")
+                                            |+ char '!'
 
                             expected =
                                 "I had some bold text, but not anymore!"
                         in
-                        Expect.equal expected (Render.show result)
+                        Doc.toString result
+                            |> Result.map (Expect.equal expected)
+                            |> Result.withDefault (Expect.fail "Failure in result")
                 ]
         , skip <|
             describe "underlining"
@@ -129,45 +159,53 @@ suite =
                     \_ ->
                         let
                             result =
-                                text "We can do"
-                                    <+> underline (text "underlining")
-                                    <+> text "if your terminal supports it."
+                                string "We can do "
+                                    |+ underline (string "underlining")
+                                    |+ space
+                                    |+ string "if your terminal supports it."
 
                             expected =
                                 "We can do "
                                     ++ Ansi.underline "underlining"
                                     ++ " if your terminal supports it."
                         in
-                        Expect.equal expected (Render.show result)
+                        Doc.toString result
+                            |> Result.map (Expect.equal expected)
+                            |> Result.withDefault (Expect.fail "Failure in result")
                 , test "it can deunderline text" <|
                     \_ ->
                         let
                             result =
-                                text "We can do"
-                                    <+> deunderline (underline (text "underlining"))
-                                    <+> text "if your terminal supports it."
+                                string "We can do "
+                                    |+ deunderline (underline (string "underlining"))
+                                    |+ space
+                                    |+ string "if your terminal supports it."
 
                             expected =
                                 "We can do underlining if your terminal supports it."
                         in
-                        Expect.equal expected (Render.show result)
+                        Doc.toString result
+                            |> Result.map (Expect.equal expected)
+                            |> Result.withDefault (Expect.fail "Failure in result")
                 , test "it can deunderline with sporadic underlining and other formatting" <|
                     \_ ->
                         let
                             result =
                                 deunderline <|
                                     hang 3 <|
-                                        text "I had some"
-                                            <+> underline (text "underlined text")
-                                            <> comma
-                                            <+> text "but not"
-                                            <+> underline (text "anymore")
-                                            <> text "!"
+                                        string "I had some "
+                                            |+ underline (string "underlined text")
+                                            |+ char ','
+                                            |+ string " but not "
+                                            |+ underline (string "anymore")
+                                            |+ char '!'
 
                             expected =
                                 "I had some underlined text, but not anymore!"
                         in
-                        Expect.equal expected (Render.show result)
+                        Doc.toString result
+                            |> Result.map (Expect.equal expected)
+                            |> Result.withDefault (Expect.fail "Failure in result")
                 ]
         , skip <|
             describe "combinations of formatting"
@@ -175,38 +213,44 @@ suite =
                     \_ ->
                         let
                             result =
-                                text "We can do"
-                                    <+> bold (underline (text "underlining and boldness"))
-                                    <+> text "if your terminal supports it."
+                                string "We can do "
+                                    |+ bold (underline (string "underlining and boldness"))
+                                    |+ string " if your terminal supports it."
 
                             expected =
                                 "We can do "
                                     ++ Ansi.bold (Ansi.underline "underlining and boldness")
                                     ++ " if your terminal supports it."
                         in
-                        Expect.equal expected (Render.show result)
+                        Doc.toString result
+                            |> Result.map (Expect.equal expected)
+                            |> Result.withDefault (Expect.fail "Failure in result")
                 , test "it can do boldness with foreground color" <|
                     \_ ->
                         let
                             result =
-                                text "this is"
-                                    <+> bold (blue (text "some bold blue"))
-                                    <+> text "text"
+                                string "this is "
+                                    |+ bold (blue (string "some bold blue"))
+                                    |+ string " text"
 
                             expected =
                                 "this is "
                                     ++ Ansi.bold (Ansi.blue "some bold blue")
                                     ++ " text"
                         in
-                        Expect.equal expected (Render.show result)
+                        Doc.toString result
+                            |> Result.map (Expect.equal expected)
+                            |> Result.withDefault (Expect.fail "Failure in result")
                 , test "it can do foreground color and background color" <|
                     \_ ->
                         let
                             result =
-                                onWhite <|
-                                    text "this is"
-                                        <+> red (text "red text")
-                                        <+> text "on a white background"
+                                bgWhite <|
+                                    string "this is"
+                                        |+ space
+                                        |+ red (string "red text")
+                                        |+ space
+                                        |+ string "on a white background"
 
                             expected =
                                 Ansi.bgWhite <|
@@ -214,53 +258,65 @@ suite =
                                         ++ Ansi.red "red text"
                                         ++ " on a white background"
                         in
-                        Expect.equal expected (Render.show result)
+                        Doc.toString result
+                            |> Result.map (Expect.equal expected)
+                            |> Result.withDefault (Expect.fail "Failure in result")
                 , test "it can do bold with background color" <|
                     \_ ->
                         let
                             result =
-                                onCyan <|
-                                    text "this is"
-                                        <+> bold (text "bold text")
-                                        <+> text "on a cyan background"
+                                bgCyan <|
+                                    string "this is "
+                                        |+ bold (string "bold text")
+                                        |+ space
+                                        |+ string "on a cyan background"
 
                             expected =
                                 Ansi.bgCyan <|
                                     "this is "
                                         ++ Ansi.bold "bold text"
-                                        ++ " on a white background"
+                                        ++ " on a cyan background"
                         in
-                        Expect.equal expected (Render.show result)
+                        Doc.toString result
+                            |> Result.map (Expect.equal expected)
+                            |> Result.withDefault (Expect.fail "Failure in result")
                 , test "it can do underline with background color and foreground color" <|
                     \_ ->
                         let
                             result =
-                                onBlue <|
-                                    text "this is"
-                                        <+> black (underline (text "underlined text"))
-                                        <+> text "on a blue background"
+                                bgBlue <|
+                                    string "this is"
+                                        |+ space
+                                        |+ black (underline (string "black underlined text"))
+                                        |+ space
+                                        |+ string "on a blue background"
 
                             expected =
                                 Ansi.bgBlue <|
                                     "this is "
-                                        ++ Ansi.black (Ansi.underline "underlined text")
+                                        ++ Ansi.black (Ansi.underline "black underlined text")
                                         ++ " on a blue background"
                         in
-                        Expect.equal expected (Render.show result)
+                        Doc.toString result
+                            |> Result.map (Expect.equal expected)
+                            |> Result.withDefault (Expect.fail "Failure in result")
                 ]
         , describe "plain"
             [ test "it removes all formatting from doc" <|
                 \_ ->
                     let
                         result =
-                            onBlue <|
-                                text "this is"
-                                    <+> red (underline (text "red underlined text"))
-                                    <+> bold (text "on a blue background")
+                            bgBlue <|
+                                string "this is "
+                                    |+ red (underline (string "red underlined text"))
+                                    |+ space
+                                    |+ bold (string "on a blue background")
 
                         expected =
                             "this is red underlined text on a blue background"
                     in
-                    Expect.equal expected (Render.show (plain result))
+                    Doc.toString (plain result)
+                        |> Result.map (Expect.equal expected)
+                        |> Result.withDefault (Expect.fail "Failure in result")
             ]
         ]
