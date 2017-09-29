@@ -75,47 +75,60 @@ must be passed as the first argument of `Debug.log` in order to be rendered as e
 **The comments underneath each example is what Debug.log will render after the Doc is converted to a String**.
 
 
-# Basics
+## API Reference
+
+  - [Basics](#basics)
+  - [Combining Docs](#combining-docs)
+  - [Lines](#lines)
+  - [Bracketing](#bracketing)
+  - [Alignment](#alignment)
+  - [Fillers](#fillers)
+  - [Colors](#colors)
+  - [Formatting](#formatting)
+  - [Rendering](#rendering)
+
+
+## Basics
 
 @docs Doc, string, char, int, float, bool, space, empty
 
 
-# Combining Docs
+## Combining Docs
 
 @docs append, (|+), join, concat
 
 
-# Lines
+## Lines
 
 @docs group, line, linebreak, softline, softbreak
 
 
-# Bracketing
+## Bracketing
 
 @docs surround, squotes, dquotes, parens, angles, brackets, braces, surroundJoin, list
 
 
-# Alignment
+## Alignment
 
-@docs hang, indent, nest, column, align
+@docs align, nest, hang, indent, column
 
 
-# Fillers
+## Fillers
 
 @docs fill, fillBreak
 
 
-# Colors
+## Colors
 
 @docs Color, Formatter, black, red, darkRed, green, darkGreen, yellow, darkYellow, blue, darkBlue, magenta, darkMagenta, cyan, darkCyan, white, darkWhite, bgRed, bgWhite, bgBlue, bgYellow, bgCyan, bgGreen, bgBlack, bgMagenta
 
 
-# Formatting
+## Formatting
 
 @docs bold, debold, underline, deunderline, plain
 
 
-# Rendering
+## Rendering
 
 @docs NormalForm, TextFormat, renderPretty, toString, display
 
@@ -232,8 +245,8 @@ concat docs =
         |> Maybe.withDefault Empty
 
 
-{-| Tries to put all elements of a Doc on the current line if it will fit
-the width of the page. If everything cannot fit on the current line, then
+{-| Tries to put all elements of a Doc on a single line if it will fit
+the width of the page. If everything cannot fit on one line, then
 no changes are made.
 
     string "how now"
@@ -417,8 +430,9 @@ bool =
     string << Basics.toString
 
 
-{-| Creates a Doc from an `(Int -> Doc)` function where the `Int` is the current column, or the
-rightmost position (in characters) on the current line. So `string "hello"` has a current column of `5`.
+{-| Creates a Doc from a function where the first argument is the current column of the Doc.
+Since `string "hello"` has a length of 5, the following snippet will indent `"from afar"` 5 spaces
+before appending to `"hello"`.
 
     string "hello"
         |+ column (\col -> indent col (string "from afar"))
@@ -444,15 +458,15 @@ nesting =
     Nesting
 
 
-{-| Creates a Doc where the nesting level (the number of indented spaces of bottom-most line)
-is increased by the given `Int`.
+{-| Increases the number of spaces that all nested lines are indented.
 
-    nest 2 (string "hello" |+ line |+ string "world")
-        |+ line
-        |+ char '!'
-    -- hello
-    --  world
-    -- !
+    string "pretty printing in Elm"
+        |+ softline
+        |+ string "can be a lot of fun?"
+        |> nest 2
+        |> append (string "Did you know that ")
+    -- Did you know that pretty printing in Elm
+    --   can be a lot of fun?
 
 -}
 nest : Int -> Doc -> Doc
@@ -464,8 +478,8 @@ nest =
 -- ALIGNMENT
 
 
-{-| Sets the nesting level of the given Doc to the current column. This vertically aligns
-the Doc so that it moves as a single column.
+{-| Sets the indentation of all _nested lines_, or lines that are placed underneath another line, equal to the current column.
+This vertically aligns the Doc so that it moves as a single column.
 
     string "old"
         |+ line
@@ -474,6 +488,9 @@ the Doc so that it moves as a single column.
         |> append (string "hello ")
     -- hello old
     --       friend
+
+In the above example, `"hello "` has a current column of 6, so when it was prepended to the beginning of our aligned doc,
+the nested line was indented by 6 spaces.
 
 -}
 align : Doc -> Doc
@@ -485,14 +502,15 @@ align doc =
         )
 
 
-{-| Applies hanging indentation equal to the given integer. Does not indent the first line.
+{-| Works similar to `nest`, but this function also aligns the nested lines with the top line.
 
-    ["the", "hang", "combinator", "indents", "these", "words !"]
-        |> List.map string
-        |> join softline
-        |> hang 4
-    -- the hang combinator indents
-    --     these words !
+    string "pretty printing in Elm"
+        |+ softline
+        |+ string "can be a lot of fun?"
+        |> hang 2
+        |> append (string "Did you know that ")
+    -- Did you know that pretty printing in Elm
+    --                     can be a lot of fun?
 
 -}
 hang : Int -> Doc -> Doc
@@ -500,7 +518,7 @@ hang spaces doc =
     align (nest spaces doc)
 
 
-{-| Indents the entire Doc equal to the given number of spaces.
+{-| Indents the entire Doc by a given number of spaces.
 
     ["the", "indent", "combinator", "indents", "these", "words !"]
         |> List.map string
@@ -665,7 +683,7 @@ column is equal to the given Int.
         |+ string "brown cow?"
     -- how now     brown cow?
 
-If current column is greater than the given Int, nothing is appended.
+If length of the current line is greater than the given Int, nothing is appended.
 
     fill 5 (string "how now")
         |+ string "brown cow?"
@@ -707,8 +725,8 @@ fill spacesToAdd doc =
     width doc addSpaces
 
 
-{-| Works the same way as `fill`, except that if the current column is greater than the given `Int`,
-then a linebreak is inserted and the nesting level is increased to given `Int`.
+{-| Works the same way as `fill`, except that if the length of the current line is greater than the given `Int`,
+then a linebreak is inserted and the indentation of all _nested lines_ is increased to given `Int`.
 
     let
         types =
