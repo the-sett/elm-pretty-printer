@@ -63,20 +63,10 @@ suite =
                 \_ ->
                     [ "a really long string", "another really long string", "a third really long string" ]
                         |> List.map string
-                        |> surroundJoin (char '[') (char ']') (char ',')
+                        |> surroundJoin (string "[ ") (char ']') (string ", ")
                         |> (|+) (string "list ")
                         |> Doc.toString
-                        |> Result.map (Expect.equal "list [a really long string\n     ,another really long string\n     ,a third really long string]")
-                        |> Result.withDefault (Expect.fail "Failure in result")
-            ]
-        , describe "list"
-            [ test "it comma separates the docs and encloses them in square brackets" <|
-                \_ ->
-                    [ 10, 200, 3000 ]
-                        |> List.map int
-                        |> list
-                        |> Doc.toString
-                        |> Result.map (Expect.equal "[10,200,3000]")
+                        |> Result.map (Expect.equal "list [ a really long string\n     , another really long string\n     , a third really long string]")
                         |> Result.withDefault (Expect.fail "Failure in result")
             ]
         , describe "tupled"

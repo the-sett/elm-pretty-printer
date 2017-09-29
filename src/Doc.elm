@@ -2,6 +2,7 @@ module Doc
     exposing
         ( (|+)
         , Color(..)
+        , ConsoleLayer(..)
         , Doc
         , Formatter
         , NormalForm(..)
@@ -50,7 +51,6 @@ module Doc
         , join
         , line
         , linebreak
-        , list
         , magenta
         , nest
         , parens
@@ -71,8 +71,10 @@ module Doc
         )
 
 {-| Functions for combining, formatting, and printing text. Because this library uses the terminal, the content you wish to print
-must be passed as the first argument of `Debug.log` in order to be rendered as expected.
-**The comments underneath each example is what Debug.log will render after the Doc is converted to a String**.
+must be passed as the first argument of `Debug.log` (or `console.log` via [Ports][interop]) in order to render as expected.
+**The comments underneath each example are what will be rendered to the terminal after the Doc is converted to a String**.
+
+[interop]: https://guide.elm-lang.org/interop/javascript.html
 
 
 ## API Reference
@@ -105,7 +107,7 @@ must be passed as the first argument of `Debug.log` in order to be rendered as e
 
 ## Bracketing
 
-@docs surround, squotes, dquotes, parens, angles, brackets, braces, surroundJoin, list
+@docs surround, squotes, dquotes, parens, angles, brackets, braces, surroundJoin
 
 
 ## Alignment
@@ -120,7 +122,7 @@ must be passed as the first argument of `Debug.log` in order to be rendered as e
 
 ## Colors
 
-@docs Color, Formatter, black, red, darkRed, green, darkGreen, yellow, darkYellow, blue, darkBlue, magenta, darkMagenta, cyan, darkCyan, white, darkWhite, bgRed, bgWhite, bgBlue, bgYellow, bgCyan, bgGreen, bgBlack, bgMagenta
+@docs Color, Formatter, ConsoleLayer, black, red, darkRed, green, darkGreen, yellow, darkYellow, blue, darkBlue, magenta, darkMagenta, cyan, darkCyan, white, darkWhite, bgRed, bgWhite, bgBlue, bgYellow, bgCyan, bgGreen, bgBlack, bgMagenta
 
 
 ## Formatting
@@ -139,15 +141,15 @@ import Console as Ansi
 import Utils
 
 
-{-| Data structure that wraps the text you eventually wish to print. Docs can be
+{-| Data structure that wraps the text you eventually wish to print. Docs can be conveniently
 combined, formatted, and aligned in many ways.
 -}
 type Doc
-    = Fail
+    = Failure
     | Empty
-    | Char Char
-    | Text Int String
-    | Line
+    | Character Char
+    | Txt Int String
+    | Break
     | FlatAlt Doc Doc
     | Cat Doc Doc
     | Nest Int Doc
@@ -187,6 +189,8 @@ type Color
     | White Formatter
 
 
+{-| Different layers that support color formatting.
+-}
 type ConsoleLayer
     = Foreground
     | Background
@@ -222,7 +226,7 @@ infixr 6 |+
 
     ["how", "now", "brown", "cow?"]
         |> List.map string
-        |> join (char ' ')
+        |> join space
     -- how now brown cow?
 
 -}
@@ -265,11 +269,7 @@ group doc =
 -- BASIC COMBINATORS
 
 
-{-| An empty Doc element.
-
-    empty
-    -- ""
-
+{-| An empty Doc element. The equivalent of `""` when converted to a `String`
 -}
 empty : Doc
 empty =
@@ -284,7 +284,7 @@ empty =
 -}
 space : Doc
 space =
-    Char ' '
+    Character ' '
 
 
 {-| Doc that advances to the next line when combined with other Doc elements.
@@ -297,7 +297,7 @@ space =
     -- brown
     -- cow
 
-When `group` is called on a Doc separated by `line` elements, the `line`s are replaced with spaces.
+When `group` is called on a Doc containing `line` elements, the `line`s are replaced with spaces.
 
     ["how", "now", "brown", "cow?"]
         |> List.map string
@@ -308,7 +308,7 @@ When `group` is called on a Doc separated by `line` elements, the `line`s are re
 -}
 line : Doc
 line =
-    FlatAlt Line space
+    FlatAlt Break space
 
 
 {-| Works the same way as `line`, except when `group` is called on a Doc with a `linebreak`
@@ -323,10 +323,10 @@ element, the `linebreak` is replaced with `empty`
 -}
 linebreak : Doc
 linebreak =
-    FlatAlt Line Empty
+    FlatAlt Break Empty
 
 
-{-| Doc that advances a single space when combined with other Doc elements, but only if the current
+{-| Doc that advances a single space when combined with other Doc elements, but only if the
 line has room.
 
     ["how", "now", "brown", "cow?"]
@@ -334,13 +334,23 @@ line has room.
         |> join softline
     -- how now brown cow?
 
-If the elements cannot fit on the same line, then it advances to the next line.
+If the elements cannot fit on the same line, then it advances to the next line. Since the basic
+`string` function is not equipped for proper lookahead, this Doc should be used if there is a chance
+of overflow and you'd like to keep consistent column lengths.
 
-    string "a really long string that might"
-        |+ softline
-        |+ string "not fit on one line"
-    -- a really long string that might
-    -- not fit on one line
+    -- NOT GREAT
+
+    string "this string may or may not fit on one line"
+    -- this string may or may not fit on one line
+
+    -- MUCH BETTER
+
+    "this string may or may not fit on one line"
+        |> String.words
+        |> List.map string
+        |> join softline
+    -- this string may or may not fit
+    -- on one line
 
 -}
 softline : Doc
@@ -362,7 +372,7 @@ softbreak =
     group linebreak
 
 
-{-| Creates a Doc from a String.
+{-| Creates a Doc from a `String`.
 
     string "hello, world!"
     -- hello, world!
@@ -378,10 +388,10 @@ string str =
             if Utils.hasWhitespace s then
                 parseString s
             else
-                Text (String.length s) s
+                Txt (String.length s) s
 
 
-{-| Creates a Doc from a Char.
+{-| Creates a Doc from a `Char`.
 
     char '!'
     -- !
@@ -394,10 +404,10 @@ char input =
             line
 
         _ ->
-            Char input
+            Character input
 
 
-{-| Create a Doc from an Int.
+{-| Create a Doc from an `Int`.
 
     int 3
     -- 3
@@ -408,7 +418,7 @@ int =
     string << Basics.toString
 
 
-{-| Create a Doc from a Float.
+{-| Create a Doc from a `Float`.
 
     float 12.3456
     -- 12.3456
@@ -419,7 +429,7 @@ float =
     string << Basics.toString
 
 
-{-| Create a Doc from a Bool.
+{-| Create a Doc from a `Bool`.
 
     bool True
     -- True
@@ -431,16 +441,14 @@ bool =
 
 
 {-| Creates a Doc from a function where the first argument is the current column of the Doc.
-Since `string "hello"` has a length of 5, the following snippet will indent `"from afar"` 5 spaces
-before appending to `"hello"`.
+Since `hello` will take up the first 5 columns when rendered, the following snippet will
+indent `from afar...` 5 spaces.
 
     string "hello"
-        |+ column (\col -> indent col (string "from afar"))
-    -- hello     from afar
+        |+ column (\col -> indent col (string "from afar..."))
+    -- hello     from afar...
 
 This is useful if you need to know the current column in order to do some sort of combination.
-However if you don't need fine-grain control over where elements will be placed, `align`
-or `fill` might serve as a better alternative.
 
 -}
 column : (Int -> Doc) -> Doc
@@ -461,7 +469,7 @@ nesting =
 {-| Increases the number of spaces that all nested lines are indented.
 
     string "pretty printing in Elm"
-        |+ softline
+        |+ line
         |+ string "can be a lot of fun?"
         |> nest 2
         |> append (string "Did you know that ")
@@ -489,8 +497,8 @@ This vertically aligns the Doc so that it moves as a single column.
     -- hello old
     --       friend
 
-In the above example, `"hello "` has a current column of 6, so when it was prepended to the beginning of our aligned doc,
-the nested line was indented by 6 spaces.
+In the above example, `string "hello "` has a current column of 6, so when it is prepended to the beginning of our aligned doc,
+the nested line is indented by 6 spaces.
 
 -}
 align : Doc -> Doc
@@ -505,7 +513,7 @@ align doc =
 {-| Works similar to `nest`, but this function also aligns the nested lines with the top line.
 
     string "pretty printing in Elm"
-        |+ softline
+        |+ line
         |+ string "can be a lot of fun?"
         |> hang 2
         |> append (string "Did you know that ")
@@ -624,16 +632,17 @@ braces =
         |> surroundJoin (char '<') (char '>') (char '-')
     -- <some-html-element>
 
-Provides a bit of extra formatting help by aligning elements (separator in front) if they cannot
-all fit on the same line.
+Provides a bit of extra formatting help by aligning elements (separator in front) if they cannot all fit on the
+same line.
 
     [ "a really long string", "another really long string", "a third really long string" ]
         |> List.map string
+        |> List.map (surround space space)
         |> surroundJoin (char '[') (char ']') (char ',')
         |> append (string "list ")
-    -- list [a really long string
-    --      ,another really long string
-    --      ,a third really long string]
+    -- list [ a really long string
+    --      , another really long string
+    --      , a third really long string ]
 
 -}
 surroundJoin : Doc -> Doc -> Doc -> List Doc -> Doc
@@ -657,39 +666,25 @@ surroundJoin left right sep docs =
                 |> align
 
 
-{-| Render a list of Docs as a comma separated list.
-
-    list =
-      surroundJoin (char '[') (char ']') (char ',')
-
-    List.map int [10, 200, 3000]
-        |> list
-    -- [10,200,3000]
-
--}
-list : List Doc -> Doc
-list =
-    surroundJoin (char '[') (char ']') (char ',')
-
-
 
 -- FILLERS
 
 
-{-| Takes an Int and a Doc and appends spaces to the end of the Doc until the current
-column is equal to the given Int.
+{-| Appends spaces to the end of the Doc until the current column is equal to the given `Int`.
 
     fill 12 (string "how now")
         |+ string "brown cow?"
     -- how now     brown cow?
 
-If length of the current line is greater than the given Int, nothing is appended.
+Since `how now` takes up the first 7 columns in the above example and we passed 12 to `fill`,
+we can expect there to be 5 spaces between `how now` and `brown cow`. If the current column
+is greater than the given `Int`, nothing is appended.
 
     fill 5 (string "how now")
         |+ string "brown cow?"
     -- how nowbrown cow?
 
-This can be especially useful with `align` to represent type signatures
+When used with `align`, this function can be particularly helpful for pretty printing different types of data.
 
     let
         types =
@@ -725,8 +720,8 @@ fill spacesToAdd doc =
     width doc addSpaces
 
 
-{-| Works the same way as `fill`, except that if the length of the current line is greater than the given `Int`,
-then a linebreak is inserted and the indentation of all _nested lines_ is increased to given `Int`.
+{-| Works the same way as `fill`, except that if the current column is greater than the given `Int`,
+then a linebreak is inserted and the indentation of all nested lines is increased to given `Int`.
 
     let
         types =
@@ -952,7 +947,7 @@ bgMagenta =
 -- FORMATTING
 
 
-{-| Takes a Doc and bolds all the text. Some terminals implement this as a color change rather
+{-| Bolds all the text in a Doc. Some terminals implement this as a color change rather
 than a boldness change.
 -}
 bold : Doc -> Doc
@@ -999,7 +994,7 @@ debold doc =
             doc
 
 
-{-| Takes a Doc and underlines all the text. May not be supported on all terminals.
+{-| Underlines all the text in a Doc. May not be supported on all terminals.
 -}
 underline : Doc -> Doc
 underline =
@@ -1094,17 +1089,18 @@ type TextFormat
     = WithColor ConsoleLayer Color
     | WithUnderline Formatter
     | WithBold Formatter
-    | Reset
+    | Default
 
 
-{-| Intermediate data structure between Doc and String.
+{-| Intermediate data structure between `Doc` and `String`. Can be useful during situations where
+greater control during the rendering process is preferred.
 -}
 type NormalForm
-    = Failure
+    = Fail
     | Blank
-    | Character Char NormalForm
-    | TextElement Int String NormalForm
-    | Linebreak Int NormalForm
+    | Char Char NormalForm
+    | Text Int String NormalForm
+    | Line Int NormalForm
     | Formatted (List TextFormat) NormalForm
 
 
@@ -1113,23 +1109,26 @@ type Docs
     | Cons Int Doc Docs
 
 
-{-| Takes a Doc and converts it to a string with a column width of 80 and a ribbon width of 32
+{-| Takes a Doc and converts it to a string with a column width of 80 and a ribbon width of 32.
+This function is useful if you don't care about custom widths and just want to print your Doc.
 -}
 toString : Doc -> Result String String
 toString doc =
     display (renderPretty 0.4 80 doc)
 
 
-{-| Converts a Doc into a NormalForm, which is just the intermediate data structure between Doc and
-String. This function also takes a ribbon width and a page width. Where the ribbon width indicates the
-max _percentage_ of non-indentation characters that should appear on a line, and the page width is the
-max number of _total_ characters that can be on a single line. Can be used in combination with `display` to
-convert a Doc to a String with more customization on the width than using the default `toString` function.
+{-| Convert a `Doc` into `NormalForm` by specifying both the ribbon width and the page width.
+The **ribbon width** indicates the max _percentage_ of non-indentation characters that should
+appear on a line, and the **page width** is the max number of _total_ characters that can be on a
+single line. Can be used in combination with `display` to convert a `Doc` to a `String` with more
+customization on the width than using the default `toString` function.
 
     let
         doc =
-          string "list"
-              |+ list (List.map int [10, 200, 3000])
+          [10, 200, 3000]
+              |> List.map int
+              |> surroundJoin (char '[') (char ']') (char ',')
+              |> append (string "list ")
     in
         -- ribbon width of 20
         display (renderPretty 0.25 80 doc)
@@ -1154,10 +1153,10 @@ renderFits :
     -> Int
     -> Doc
     -> NormalForm
-renderFits doesItFit rfrac pageWidth doc =
+renderFits doesItFit ribbonPct pageWidth doc =
     let
         ribbonWidth =
-            round (toFloat pageWidth * rfrac)
+            round (toFloat pageWidth * ribbonPct)
                 |> min pageWidth
                 |> max 0
 
@@ -1184,20 +1183,20 @@ renderFits doesItFit rfrac pageWidth doc =
                                 documents
                     in
                     case document of
-                        Fail ->
-                            Failure
+                        Failure ->
+                            Fail
 
                         Empty ->
                             recur indent currCol documents
 
-                        Char char ->
-                            Character char (recur indent (currCol + 1) documents)
+                        Character char ->
+                            Char char (recur indent (currCol + 1) documents)
 
-                        Text length str ->
-                            TextElement length str (recur indent (currCol + length) documents)
+                        Txt length str ->
+                            Text length str (recur indent (currCol + length) documents)
 
-                        Line ->
-                            Linebreak n (recur n n documents)
+                        Break ->
+                            Line n (recur n n documents)
 
                         FlatAlt doc1 _ ->
                             recur indent currCol (Cons n doc1 documents)
@@ -1251,7 +1250,7 @@ renderFits doesItFit rfrac pageWidth doc =
                         RestoreFormat { fgColor, bgColor, bold, underliner } ->
                             let
                                 formats =
-                                    Reset
+                                    Default
                                         :: List.filterMap identity
                                             [ Maybe.map (WithColor Foreground) fgColor
                                             , Maybe.map (WithColor Background) bgColor
@@ -1280,43 +1279,44 @@ willFit pageWidth minNestingLvl firstLineWidth simpleDoc =
         False
     else
         case simpleDoc of
-            Failure ->
+            Fail ->
                 False
 
             Blank ->
                 True
 
-            Character char sDoc ->
+            Char char sDoc ->
                 willFit pageWidth minNestingLvl (firstLineWidth - 1) sDoc
 
-            TextElement width content sDoc ->
+            Text width content sDoc ->
                 willFit pageWidth minNestingLvl (firstLineWidth - width) sDoc
 
-            Linebreak width sDoc ->
+            Line width sDoc ->
                 True
 
             Formatted _ sDoc ->
                 willFit pageWidth minNestingLvl firstLineWidth sDoc
 
 
-{-| Takes a NormalForm and converts it to a `Result String String`
+{-| Intermediate step for converting `NormalForm` to a `String`. Where `toString` converts a `Doc`
+all the way to a `String`, this function allows for greater control during the rendering process.
 -}
 display : NormalForm -> Result String String
 display simpleDoc =
     case simpleDoc of
-        Failure ->
-            Err "Failure cannot appear in NormalForm"
+        Fail ->
+            Err "Fail cannot appear in NormalForm"
 
         Blank ->
             Ok ""
 
-        Character char sDoc ->
+        Char char sDoc ->
             Result.map (String.cons char) (display sDoc)
 
-        TextElement _ content sDoc ->
+        Text _ content sDoc ->
             Result.map (String.append content) (display sDoc)
 
-        Linebreak indents sDoc ->
+        Line indents sDoc ->
             display sDoc
                 |> Result.map (String.append (String.cons '\n' (Utils.spaces indents)))
 
@@ -1328,7 +1328,7 @@ display simpleDoc =
 getFormatter : TextFormat -> Formatter
 getFormatter format =
     case format of
-        Reset ->
+        Default ->
             Ansi.plain
 
         WithColor layer color ->
@@ -1357,8 +1357,8 @@ flatten doc =
         Nest n doc ->
             Nest n (flatten doc)
 
-        Line ->
-            Fail
+        Break ->
+            Failure
 
         Union doc1 doc2 ->
             flatten doc1
@@ -1400,7 +1400,7 @@ parseString str =
                     space |+ doc
 
                 _ ->
-                    Text (String.length chunk) chunk
+                    Txt (String.length chunk) chunk
                         |+ doc
     in
     Utils.splitOnWhitespace str

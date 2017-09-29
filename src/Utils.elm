@@ -1,4 +1,10 @@
-module Utils exposing (..)
+module Utils
+    exposing
+        ( foldr1
+        , hasWhitespace
+        , spaces
+        , splitOnWhitespace
+        )
 
 import Regex
 
@@ -25,9 +31,23 @@ foldr1 f xs =
 
 splitOnWhitespace : String -> List String
 splitOnWhitespace =
-    Regex.split Regex.All (Regex.regex "(\\\n|\\t|\\ )")
+    Regex.split Regex.All (Regex.regex regexWhitespace)
 
 
 hasWhitespace : String -> Bool
 hasWhitespace =
-    Regex.contains (Regex.regex "(\\\n|\\t|\\ )")
+    Regex.contains (Regex.regex regexWhitespace)
+
+
+regexWhitespace : String
+regexWhitespace =
+    whitespace
+        |> List.map ((++) "\\")
+        |> String.join "|"
+        |> (++) "("
+        |> flip (++) ")"
+
+
+whitespace : List String
+whitespace =
+    [ "\n", "\t", " " ]

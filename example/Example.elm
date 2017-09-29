@@ -19,18 +19,6 @@ main =
                 |> Doc.toString
                 |> Result.map (\doc -> Debug.log doc ())
 
-        samples =
-            [ dividerText "COLORS & FORMATTING"
-            , rwbSample
-            , nestedColorsSample
-            , rwbBgSample
-            , nestedBgColorsSample
-            , nonColorFormattingSample
-            , dividerText "ALIGNMENT"
-            , jsonSample
-            , dividerText "ENJOY!"
-            ]
-
         doc =
             samples
                 |> (::) (Doc.string "...or you can use ports for cleaner output!")
@@ -45,6 +33,20 @@ main =
         , update = \_ _ -> ( (), Cmd.none )
         , subscriptions = \_ -> Sub.none
         }
+
+
+samples : List Doc
+samples =
+    [ dividerText "COLORS & FORMATTING"
+    , rwbSample
+    , nestedColorsSample
+    , rwbBgSample
+    , nestedBgColorsSample
+    , nonColorFormattingSample
+    , dividerText "ALIGNMENT"
+    , jsonSample
+    , dividerText "ENJOY!"
+    ]
 
 
 rwbSample : Doc
@@ -101,36 +103,57 @@ prettyKeyVal ( attr, value ) =
                 |> Doc.dquotes
     in
     Doc.fill 12 prettyAttr
-        |+ Doc.fill 4 (Doc.string ": ")
+        |+ Doc.fill 4 (Doc.char ':')
         |+ Doc.dquotes (Doc.green (Doc.string value))
+
+
+prettyJson : List ( String, String ) -> Doc
+prettyJson data =
+    List.map prettyKeyVal data
+        |> Doc.join (Doc.char ',' |+ Doc.line)
+        |> Doc.align
+        |> Doc.indent 4
+        |> wrapLines
+        |> Doc.braces
 
 
 jsonSample : Doc
 jsonSample =
-    sampleJsonData
-        |> List.map prettyKeyVal
-        |> Doc.join (Doc.char ',' |+ Doc.line)
-        |> Doc.align
+    [ sampleData1, sampleData2 ]
+        |> List.map prettyJson
+        |> Doc.join (wrapLines (Doc.char ','))
         |> Doc.indent 4
-        |> Doc.surround Doc.line Doc.line
-        |> Doc.braces
+        |> wrapLines
+        |> Doc.brackets
 
 
-sampleJsonData : List ( String, String )
-sampleJsonData =
+sampleData1 : List ( String, String )
+sampleData1 =
     [ ( "full_name", "Bill Johnson" )
     , ( "address", "123 Fake St" )
+    , ( "role", "guest" )
+    ]
+
+
+sampleData2 : List ( String, String )
+sampleData2 =
+    [ ( "full_name", "Jane Doe" )
+    , ( "address", "1432 Westgreen Terrace" )
     , ( "role", "admin" )
     ]
+
+
+wrapLines : Doc -> Doc
+wrapLines =
+    Doc.surround Doc.line Doc.line
 
 
 dividerText : String -> Doc
 dividerText txt =
     let
         room =
-            floor <|
-                toFloat (String.length txt)
-                    / 2
+            floor
+                (toFloat (String.length txt) / 2)
 
         divider =
             String.repeat (40 - room) "-"
@@ -143,5 +166,5 @@ dividerText txt =
     Doc.string txt
         |> Doc.yellow
         |> Doc.surround
-            (Doc.concat (List.reverse surrounders))
+            (Doc.concat <| List.reverse surrounders)
             (Doc.concat surrounders)
