@@ -15,8 +15,7 @@ suite =
                         |+ line
                         |+ string "world"
                         |> Doc.toString
-                        |> Result.map (Expect.equal "hello\nworld")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "hello\nworld"
             , test "it puts a SPACE between elements when undone by group" <|
                 \_ ->
                     string "hello"
@@ -24,8 +23,7 @@ suite =
                         |+ string "world"
                         |> group
                         |> Doc.toString
-                        |> Result.map (Expect.equal "hello world")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "hello world"
             ]
         , describe "<$$> - linebreak"
             [ test "advances to next line" <|
@@ -34,8 +32,7 @@ suite =
                         |+ linebreak
                         |+ string "world"
                         |> Doc.toString
-                        |> Result.map (Expect.equal "hello\nworld")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "hello\nworld"
             , test "it puts elements right next to each other when undone by group" <|
                 \_ ->
                     string "hello"
@@ -43,8 +40,7 @@ suite =
                         |+ string "world"
                         |> group
                         |> Doc.toString
-                        |> Result.map (Expect.equal "helloworld")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "helloworld"
             ]
         , describe "</> - softline"
             [ test "it separates elements with a space if they can fit on same line" <|
@@ -53,16 +49,14 @@ suite =
                         |+ softline
                         |+ string "world"
                         |> Doc.toString
-                        |> Result.map (Expect.equal "hello world")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "hello world"
             , test "it inserts a break if both will not fit on same line" <|
                 \_ ->
                     string "a really long string that might"
                         |+ softline
                         |+ string "not fit on one line"
                         |> Doc.toString
-                        |> Result.map (Expect.equal "a really long string that might\nnot fit on one line")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "a really long string that might\nnot fit on one line"
             ]
         , describe "<//> - softbreak"
             [ test "it separates elements with nothing if they will fit on same line" <|
@@ -71,15 +65,30 @@ suite =
                         |+ softbreak
                         |+ string "world"
                         |> Doc.toString
-                        |> Result.map (Expect.equal "helloworld")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "helloworld"
             , test "it advances second element to next line if it will not fit on same line" <|
                 \_ ->
                     string "a really long string that might"
                         |+ softbreak
                         |+ string "not fit on one line"
                         |> Doc.toString
-                        |> Result.map (Expect.equal "a really long string that might\nnot fit on one line")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "a really long string that might\nnot fit on one line"
+            ]
+        , describe "hardline"
+            [ test "it separates elements with a line break" <|
+                \_ ->
+                    string "hello"
+                        |+ hardline
+                        |+ string "world"
+                        |> Doc.toString
+                        |> Expect.equal "hello\nworld"
+            , test "it cannot be flattened with group" <|
+                \_ ->
+                    string "hello"
+                        |+ hardline
+                        |+ string "world"
+                        |> group
+                        |> Doc.toString
+                        |> Expect.equal "hello\nworld"
             ]
         ]

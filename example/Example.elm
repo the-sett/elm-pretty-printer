@@ -17,19 +17,16 @@ main =
                 |> Doc.append Doc.line
                 |> Doc.append (dividerText "PRINTING")
                 |> Doc.toString
-                |> Result.map (\doc -> Debug.log doc ())
+                |> flip Debug.log ()
 
         doc =
             samples
                 |> (::) (Doc.string "...or you can use ports for cleaner output!")
-                |> Doc.join Doc.line
+                |> Doc.join Doc.hardline
                 |> Doc.toString
     in
     Platform.program
-        { init =
-            ( ()
-            , Result.withDefault Cmd.none (Result.map log doc)
-            )
+        { init = ( (), log doc )
         , update = \_ _ -> ( (), Cmd.none )
         , subscriptions = \_ -> Sub.none
         }
@@ -96,15 +93,12 @@ nonColorFormattingSample =
 prettyKeyVal : ( String, String ) -> Doc
 prettyKeyVal ( attr, value ) =
     let
-        prettyAttr =
-            Doc.string attr
-                |> Doc.red
-                |> Doc.bold
-                |> Doc.dquotes
+        withQuotes =
+            Doc.dquotes << Doc.string
     in
-    Doc.fill 12 prettyAttr
+    Doc.fill 12 (withQuotes attr)
         |+ Doc.fill 4 (Doc.char ':')
-        |+ Doc.dquotes (Doc.green (Doc.string value))
+        |+ withQuotes value
 
 
 prettyJson : List ( String, String ) -> Doc
@@ -113,7 +107,7 @@ prettyJson data =
         |> Doc.join (Doc.char ',' |+ Doc.line)
         |> Doc.align
         |> Doc.indent 4
-        |> wrapLines
+        |> break
         |> Doc.braces
 
 
@@ -121,10 +115,15 @@ jsonSample : Doc
 jsonSample =
     [ sampleData1, sampleData2 ]
         |> List.map prettyJson
-        |> Doc.join (wrapLines (Doc.char ','))
+        |> Doc.join (break (Doc.char ','))
         |> Doc.indent 4
-        |> wrapLines
+        |> break
         |> Doc.brackets
+
+
+break : Doc -> Doc
+break =
+    Doc.surround Doc.hardline Doc.hardline
 
 
 sampleData1 : List ( String, String )
@@ -143,11 +142,6 @@ sampleData2 =
     ]
 
 
-wrapLines : Doc -> Doc
-wrapLines =
-    Doc.surround Doc.line Doc.line
-
-
 dividerText : String -> Doc
 dividerText txt =
     let
@@ -161,10 +155,10 @@ dividerText txt =
                 |> Doc.cyan
 
         surrounders =
-            [ Doc.space, divider, Doc.line ]
+            [ Doc.line, divider, Doc.space ]
     in
     Doc.string txt
         |> Doc.yellow
         |> Doc.surround
-            (Doc.concat <| List.reverse surrounders)
             (Doc.concat surrounders)
+            (Doc.concat <| List.reverse surrounders)

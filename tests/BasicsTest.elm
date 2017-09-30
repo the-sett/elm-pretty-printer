@@ -17,22 +17,19 @@ suite =
                     in
                     string input
                         |> Doc.toString
-                        |> Result.map (Expect.equal input)
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal input
             ]
         , describe "int"
             [ test "it turns a literal integer to a text object w/ integer" <|
                 \_ ->
                     Doc.toString (int 102)
-                        |> Result.map (Expect.equal "102")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "102"
             ]
         , describe "float"
             [ test "it turns a literal float to a text object w/ float" <|
                 \_ ->
                     Doc.toString (float 32.144)
-                        |> Result.map (Expect.equal "32.144")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "32.144"
             ]
         , describe "bool"
             [ test "it turns a literal bool to a text object w/ bool" <|
@@ -47,8 +44,7 @@ suite =
                         |+ bool False
                         |+ char '!'
                         |> Doc.toString
-                        |> Result.map (Expect.equal "your answer was False!")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "your answer was False!"
             ]
         , describe "|+"
             [ test "it combines 2 docs without a space" <|
@@ -56,8 +52,7 @@ suite =
                     string "Porcu"
                         |+ string "pine"
                         |> Doc.toString
-                        |> Result.map (Expect.equal "Porcupine")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "Porcupine"
             ]
         , describe "nest"
             [ test "it renders doc with nested level set to given int" <|
@@ -66,8 +61,7 @@ suite =
                         |+ line
                         |+ char '!'
                         |> Doc.toString
-                        |> Result.map (Expect.equal "hello\n  world\n!")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "hello\n  world\n!"
             ]
         , describe "group"
             [ test "it moves all elements onto the same line by replacing breaks w/ space" <|
@@ -77,14 +71,12 @@ suite =
                         |+ string "brown cow?"
                         |> group
                         |> Doc.toString
-                        |> Result.map (Expect.equal "how now brown cow?")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "how now brown cow?"
             , test "it doesn't change anything if elements are already on same line" <|
                 \_ ->
                     string "how now brown cow?"
                         |> group
                         |> Doc.toString
-                        |> Result.map (Expect.equal "how now brown cow?")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "how now brown cow?"
             ]
         ]
