@@ -12,3 +12,7 @@ $ elm-make --output=elm.js Example.elm && node run.js
 ### 1.0.0
 
 Initial release.
+
+### 2.0.0
+
+Change rendering functions to return "success" value instead of a Result type. Add `hardline`.
