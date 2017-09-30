@@ -46,6 +46,7 @@ module Doc
         , green
         , group
         , hang
+        , hardline
         , indent
         , int
         , join
@@ -102,7 +103,7 @@ must be passed as the first argument of `Debug.log` (or `console.log` via [Ports
 
 ## Lines
 
-@docs group, line, linebreak, softline, softbreak
+@docs group, line, linebreak, hardline, softline, softbreak
 
 
 ## Bracketing
@@ -295,7 +296,7 @@ space =
     -- how
     -- now
     -- brown
-    -- cow
+    -- cow?
 
 When `group` is called on a Doc containing `line` elements, the `line`s are replaced with spaces.
 
@@ -324,6 +325,24 @@ element, the `linebreak` is replaced with `empty`
 linebreak : Doc
 linebreak =
     FlatAlt Break Empty
+
+
+{-| Works the same way as `line` and `linebreak`, except when `group` is called on a Doc with
+a `hardline`, it is not replaced with anything.
+
+    ["how", "now", "brown", "cow?"]
+        |> List.map string
+        |> join hardline
+        |> group
+    -- how
+    -- now
+    -- brown
+    -- cow?
+
+-}
+hardline : Doc
+hardline =
+    Break
 
 
 {-| Doc that advances a single space when combined with other Doc elements, but only if the

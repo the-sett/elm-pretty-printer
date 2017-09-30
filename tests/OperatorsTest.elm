@@ -82,4 +82,23 @@ suite =
                         |> Result.map (Expect.equal "a really long string that might\nnot fit on one line")
                         |> Result.withDefault (Expect.fail "Failure in result")
             ]
+        , describe "hardline"
+            [ test "it separates elements with a line break" <|
+                \_ ->
+                    string "hello"
+                        |+ hardline
+                        |+ string "world"
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "hello\nworld")
+                        |> Result.withDefault (Expect.fail "Failure in result")
+            , test "it cannot be flattened with group" <|
+                \_ ->
+                    string "hello"
+                        |+ hardline
+                        |+ string "world"
+                        |> group
+                        |> Doc.toString
+                        |> Result.map (Expect.equal "hello\nworld")
+                        |> Result.withDefault (Expect.fail "Failure in result")
+            ]
         ]
