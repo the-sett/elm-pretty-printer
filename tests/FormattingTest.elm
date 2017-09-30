@@ -35,8 +35,7 @@ suite =
                                     ++ "!"
                         in
                         Doc.toString result
-                            |> Result.map (Expect.equal expected)
-                            |> Result.withDefault (Expect.fail "Failure in result")
+                            |> Expect.equal expected
                 , test "colors can be nested" <|
                     \_ ->
                         let
@@ -52,8 +51,7 @@ suite =
                                 Ansi.blue "Nested" ++ Ansi.yellow " colors" ++ Ansi.blue " example"
                         in
                         Doc.toString result
-                            |> Result.map (Expect.equal expected)
-                            |> Result.withDefault (Expect.fail "Failure in result")
+                            |> Expect.equal expected
                 ]
         , skip <|
             describe "background colors"
@@ -80,8 +78,7 @@ suite =
                                     ++ "!"
                         in
                         Doc.toString result
-                            |> Result.map (Expect.equal expected)
-                            |> Result.withDefault (Expect.fail "Failure in result")
+                            |> Expect.equal expected
                 , test "colors can be nested" <|
                     \_ ->
                         let
@@ -96,8 +93,7 @@ suite =
                                 Ansi.bgBlue "Nested " ++ Ansi.bgYellow "colors" ++ Ansi.bgBlue " example"
                         in
                         Doc.toString result
-                            |> Result.map (Expect.equal expected)
-                            |> Result.withDefault (Expect.fail "Failure in result")
+                            |> Expect.equal expected
                 ]
         , skip <|
             describe "text intensity"
@@ -116,8 +112,7 @@ suite =
                                     ++ " if your terminal supports it."
                         in
                         Doc.toString result
-                            |> Result.map (Expect.equal expected)
-                            |> Result.withDefault (Expect.fail "Failure in result")
+                            |> Expect.equal expected
                 , test "it can debold text" <|
                     \_ ->
                         let
@@ -131,8 +126,7 @@ suite =
                                 "We can do boldness if your terminal supports it."
                         in
                         Doc.toString result
-                            |> Result.map (Expect.equal expected)
-                            |> Result.withDefault (Expect.fail "Failure in result")
+                            |> Expect.equal expected
                 , test "it can debold text with sporadic boldness and other formatting" <|
                     \_ ->
                         let
@@ -150,8 +144,7 @@ suite =
                                 "I had some bold text, but not anymore!"
                         in
                         Doc.toString result
-                            |> Result.map (Expect.equal expected)
-                            |> Result.withDefault (Expect.fail "Failure in result")
+                            |> Expect.equal expected
                 ]
         , skip <|
             describe "underlining"
@@ -170,8 +163,7 @@ suite =
                                     ++ " if your terminal supports it."
                         in
                         Doc.toString result
-                            |> Result.map (Expect.equal expected)
-                            |> Result.withDefault (Expect.fail "Failure in result")
+                            |> Expect.equal expected
                 , test "it can deunderline text" <|
                     \_ ->
                         let
@@ -185,8 +177,7 @@ suite =
                                 "We can do underlining if your terminal supports it."
                         in
                         Doc.toString result
-                            |> Result.map (Expect.equal expected)
-                            |> Result.withDefault (Expect.fail "Failure in result")
+                            |> Expect.equal expected
                 , test "it can deunderline with sporadic underlining and other formatting" <|
                     \_ ->
                         let
@@ -204,8 +195,7 @@ suite =
                                 "I had some underlined text, but not anymore!"
                         in
                         Doc.toString result
-                            |> Result.map (Expect.equal expected)
-                            |> Result.withDefault (Expect.fail "Failure in result")
+                            |> Expect.equal expected
                 ]
         , skip <|
             describe "combinations of formatting"
@@ -223,8 +213,7 @@ suite =
                                     ++ " if your terminal supports it."
                         in
                         Doc.toString result
-                            |> Result.map (Expect.equal expected)
-                            |> Result.withDefault (Expect.fail "Failure in result")
+                            |> Expect.equal expected
                 , test "it can do boldness with foreground color" <|
                     \_ ->
                         let
@@ -239,8 +228,7 @@ suite =
                                     ++ " text"
                         in
                         Doc.toString result
-                            |> Result.map (Expect.equal expected)
-                            |> Result.withDefault (Expect.fail "Failure in result")
+                            |> Expect.equal expected
                 , test "it can do foreground color and background color" <|
                     \_ ->
                         let
@@ -259,8 +247,7 @@ suite =
                                         ++ " on a white background"
                         in
                         Doc.toString result
-                            |> Result.map (Expect.equal expected)
-                            |> Result.withDefault (Expect.fail "Failure in result")
+                            |> Expect.equal expected
                 , test "it can do bold with background color" <|
                     \_ ->
                         let
@@ -278,8 +265,7 @@ suite =
                                         ++ " on a cyan background"
                         in
                         Doc.toString result
-                            |> Result.map (Expect.equal expected)
-                            |> Result.withDefault (Expect.fail "Failure in result")
+                            |> Expect.equal expected
                 , test "it can do underline with background color and foreground color" <|
                     \_ ->
                         let
@@ -298,8 +284,7 @@ suite =
                                         ++ " on a blue background"
                         in
                         Doc.toString result
-                            |> Result.map (Expect.equal expected)
-                            |> Result.withDefault (Expect.fail "Failure in result")
+                            |> Expect.equal expected
                 ]
         , describe "plain"
             [ test "it removes all formatting from doc" <|
@@ -316,7 +301,6 @@ suite =
                             "this is red underlined text on a blue background"
                     in
                     Doc.toString (plain result)
-                        |> Result.map (Expect.equal expected)
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal expected
             ]
         ]

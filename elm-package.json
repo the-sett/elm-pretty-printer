@@ -1,6 +1,6 @@
 {
     "version": "1.0.0",
-    "summary": "A pretty printing combinator library based off of Philip Wadler's paper",
+    "summary": "A combinator library for pretty printing to the terminal",
     "repository": "https://github.com/pwentz/elm-pretty-printer.git",
     "license": "BSD3",
     "source-directories": [

@@ -17,8 +17,7 @@ suite =
                         |> align
                         |> (|+) (string "hi ")
                         |> Doc.toString
-                        |> Result.map (Expect.equal "hi nice\n   world")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "hi nice\n   world"
             ]
         , describe "hang"
             [ test "it implements hanging indentation" <|
@@ -29,8 +28,7 @@ suite =
                         |> join softline
                         |> hang 4
                         |> Doc.toString
-                        |> Result.map (Expect.equal "the hang combinator indents\n    these words !")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "the hang combinator indents\n    these words !"
             ]
         , describe "indent"
             [ test "it indents entire document by given amount of spaces" <|
@@ -47,8 +45,7 @@ suite =
                     in
                     indent 4 elements
                         |> Doc.toString
-                        |> Result.map (Expect.equal expected)
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal expected
             ]
         , describe "encloseSep"
             [ test "it concats list of docs separated by sep and encloses result in left and right args" <|
@@ -57,8 +54,7 @@ suite =
                         |> List.map string
                         |> surroundJoin (char '<') (char '>') (char '=')
                         |> Doc.toString
-                        |> Result.map (Expect.equal "<one=1=1.0>")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "<one=1=1.0>"
             , test "it aligns elements (with separator in front) if they cannot fit on one line" <|
                 \_ ->
                     [ "a really long string", "another really long string", "a third really long string" ]
@@ -66,8 +62,7 @@ suite =
                         |> surroundJoin (string "[ ") (char ']') (string ", ")
                         |> (|+) (string "list ")
                         |> Doc.toString
-                        |> Result.map (Expect.equal "list [ a really long string\n     , another really long string\n     , a third really long string]")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "list [ a really long string\n     , another really long string\n     , a third really long string]"
             ]
         , describe "tupled"
             [ test "it comma separates the docs and encloses them in parens" <|
@@ -76,8 +71,7 @@ suite =
                         |> List.map string
                         |> surroundJoin (char '(') (char ')') (char ',')
                         |> Doc.toString
-                        |> Result.map (Expect.equal "(apples,bananas,carrots)")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "(apples,bananas,carrots)"
             ]
         , describe "semiBraces"
             [ test "it separates the docs with semicolons and encloses them in braces" <|
@@ -86,7 +80,6 @@ suite =
                         |> List.map string
                         |> surroundJoin (char '{') (char '}') (char ';')
                         |> Doc.toString
-                        |> Result.map (Expect.equal "{apples;bananas;carrots}")
-                        |> Result.withDefault (Expect.fail "Failure in result")
+                        |> Expect.equal "{apples;bananas;carrots}"
             ]
         ]

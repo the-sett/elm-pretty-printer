@@ -146,8 +146,7 @@ import Utils
 combined, formatted, and aligned in many ways.
 -}
 type Doc
-    = Failure
-    | Empty
+    = Empty
     | Character Char
     | Txt Int String
     | Break
@@ -1115,8 +1114,7 @@ type TextFormat
 greater control during the rendering process is preferred.
 -}
 type NormalForm
-    = Fail
-    | Blank
+    = Blank
     | Char Char NormalForm
     | Text Int String NormalForm
     | Line Int NormalForm
@@ -1128,10 +1126,10 @@ type Docs
     | Cons Int Doc Docs
 
 
-{-| Takes a Doc and converts it to a string with a column width of 80 and a ribbon width of 32.
+{-| Converts a Doc to a `String` with a column width of 80 and a ribbon width of 32.
 This function is useful if you don't care about custom widths and just want to print your Doc.
 -}
-toString : Doc -> Result String String
+toString : Doc -> String
 toString doc =
     display (renderPretty 0.4 80 doc)
 
@@ -1202,9 +1200,6 @@ renderFits doesItFit ribbonPct pageWidth doc =
                                 documents
                     in
                     case document of
-                        Failure ->
-                            Fail
-
                         Empty ->
                             recur indent currCol documents
 
@@ -1293,55 +1288,49 @@ renderFits doesItFit ribbonPct pageWidth doc =
 
 
 willFit : Int -> Int -> Int -> NormalForm -> Bool
-willFit pageWidth minNestingLvl firstLineWidth simpleDoc =
-    if firstLineWidth < 0 then
+willFit pageWidth minNestingLvl remainingLineWidth simpleDoc =
+    if remainingLineWidth < 0 then
         False
     else
         case simpleDoc of
-            Fail ->
-                False
-
             Blank ->
                 True
 
             Char char sDoc ->
-                willFit pageWidth minNestingLvl (firstLineWidth - 1) sDoc
+                willFit pageWidth minNestingLvl (remainingLineWidth - 1) sDoc
 
             Text width content sDoc ->
-                willFit pageWidth minNestingLvl (firstLineWidth - width) sDoc
+                willFit pageWidth minNestingLvl (remainingLineWidth - width) sDoc
 
             Line width sDoc ->
                 True
 
             Formatted _ sDoc ->
-                willFit pageWidth minNestingLvl firstLineWidth sDoc
+                willFit pageWidth minNestingLvl remainingLineWidth sDoc
 
 
 {-| Intermediate step for converting `NormalForm` to a `String`. Where `toString` converts a `Doc`
 all the way to a `String`, this function allows for greater control during the rendering process.
 -}
-display : NormalForm -> Result String String
+display : NormalForm -> String
 display simpleDoc =
     case simpleDoc of
-        Fail ->
-            Err "Fail cannot appear in NormalForm"
-
         Blank ->
-            Ok ""
+            ""
 
         Char char sDoc ->
-            Result.map (String.cons char) (display sDoc)
+            String.cons char (display sDoc)
 
         Text _ content sDoc ->
-            Result.map (String.append content) (display sDoc)
+            String.append content (display sDoc)
 
         Line indents sDoc ->
             display sDoc
-                |> Result.map (String.append (String.cons '\n' (Utils.spaces indents)))
+                |> String.append (String.cons '\n' (Utils.spaces indents))
 
         Formatted formats sDoc ->
             List.map getFormatter formats
-                |> List.foldr Result.map (display sDoc)
+                |> List.foldr (<|) (display sDoc)
 
 
 getFormatter : TextFormat -> Formatter
@@ -1375,9 +1364,6 @@ flatten doc =
 
         Nest n doc ->
             Nest n (flatten doc)
-
-        Break ->
-            Failure
 
         Union doc1 doc2 ->
             flatten doc1
