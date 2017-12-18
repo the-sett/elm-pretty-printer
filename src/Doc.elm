@@ -105,7 +105,6 @@ combined, formatted, and aligned in many ways.
 -}
 type Doc
     = Empty
-    | Character Char
     | Txt Int String
     | Break
     | FlatAlt Doc Doc
@@ -205,7 +204,7 @@ empty =
 -}
 space : Doc
 space =
-    Character ' '
+    Txt 1 " "
 
 
 {-| Doc that advances to the next line when combined with other Doc elements.
@@ -343,7 +342,7 @@ char input =
             line
 
         _ ->
-            Character input
+            Txt 1 <| String.fromChar input
 
 
 {-| Create a Doc from an `Int`.
@@ -787,9 +786,6 @@ renderFits doesItFit ribbonPct pageWidth doc =
                     case document of
                         Empty ->
                             best indent currCol documents
-
-                        Character char ->
-                            Char char (best indent (currCol + 1) documents)
 
                         Txt length str ->
                             Text length str (best indent (currCol + length) documents)
