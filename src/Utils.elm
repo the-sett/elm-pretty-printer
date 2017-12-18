@@ -26,7 +26,7 @@ foldr1 f xs =
                 |> Maybe.withDefault elt
                 |> Just
     in
-    List.foldr foldMaybes Nothing xs
+        List.foldr foldMaybes Nothing xs
 
 
 splitOnWhitespace : String -> List String
