@@ -70,6 +70,9 @@ flatten doc =
         Union doc doc2 ->
             flatten doc
 
+        Line text ->
+            NText " "
+
         x ->
             x
 
