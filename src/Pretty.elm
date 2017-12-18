@@ -1,18 +1,21 @@
 module Pretty
     exposing
         ( Doc
+        , empty
+        , space
+        , string
+        , char
         , (|+)
         , append
-        , char
-        , empty
-        , string
+        , join
         , line
+        , softline
+        , align
+        , nest
+        , hang
+        , indent
         , group
         , surround
-        , softline
-        , join
-        , space
-        , indent
         , parens
         , braces
         , pretty
@@ -20,6 +23,25 @@ module Pretty
 
 {-| Pretty printer.
 @docs Doc
+
+Functions for building pieces of documents from string data.
+@docs empty, space, string, char
+
+Functions for joining documents together
+@docs (|+), append, join
+
+Functions for fitting documents onto lines as space allows.
+@docs group, line, softline
+
+Functions for indenting and alinging documents.
+@docs align, nest, hang, indent
+
+Functions for putting brackets around documents.
+@docs surround, parens, braces, pretty
+
+Functions for pretty printing documents.
+@docs pretty
+
 -}
 
 
@@ -46,52 +68,80 @@ type Normal
 -- ==== Document constructors
 
 
+{-| Creates an empty document.
+
+    pretty 10 empty == ""
+
+-}
 empty : Doc
 empty =
     Empty
 
 
+{-| Appends two documents together.
+-}
 append : Doc -> Doc -> Doc
 append =
     Concatenate
 
 
 infixr 6 |+
+
+
+{-| Appends two documents together.
+-}
 (|+) : Doc -> Doc -> Doc
 (|+) =
     append
 
 
+{-| Adds an indent of the given number of spaces to all line breakss in the document.
+The first line will not be indented, only subsequent nested lines will be.
+-}
 nest : Int -> Doc -> Doc
 nest =
     Nest
 
 
+{-| Creates a document from a string.
+-}
 string : String -> Doc
 string =
     Text
 
 
+{-| Creates a document from a character.
+-}
 char : Char -> Doc
 char c =
     Text <| String.fromChar c
 
 
+{-| Creates a hard line break. This always creates a new line, with subsequent text
+at the current indentation level.
+-}
 line : Doc
 line =
     Line
 
 
+{-| Tries to fit a document on a single line, replacing line breaks with single spaces
+where possible to achieve this.
+-}
 group : Doc -> Doc
 group doc =
     Union (flatten doc) doc
 
 
+{-| Allows a document to be created from the current column position.
+-}
 column : (Int -> Doc) -> Doc
 column =
     Column
 
 
+{-| Allows a document to be created from the current indentation degree.
+-}
 nesting : (Int -> Doc) -> Doc
 nesting =
     Nesting
@@ -101,37 +151,57 @@ nesting =
 -- ==== Document helper functions
 
 
+{-| Places a document inside left and right book ends.
+
+    pretty 100 (surround (char '\') (char '/') string "hello")
+      == "\hello/"
+
+-}
 surround : Doc -> Doc -> Doc -> Doc
 surround left right doc =
     left |+ doc |+ right
 
 
+{-| Creates a line break that will render to a single space if the documents it
+separtes can be fitted onto one line, or a line break otherwise.
+-}
 softline : Doc
 softline =
     group Line
 
 
+{-| Concatenates a list of documents together interspersed with a separator document.
+-}
 join : Doc -> List Doc -> Doc
 join sep docs =
     List.intersperse sep docs
         |> List.foldr (\doc -> \remainder -> doc |+ remainder) empty
 
 
+{-| Creates a document consisting of a single space.
+-}
 space : Doc
 space =
     char ' '
 
 
+{-| Wraps a document in parnethesese
+-}
 parens : Doc -> Doc
 parens doc =
     surround (char '(') (char ')') doc
 
 
+{-| Wraps a document in braces.
+-}
 braces : Doc -> Doc
 braces doc =
     surround (char '{') (char '}') doc
 
 
+{-| Adds an indent of the current column position to all line breaks in the document.
+The first line will not be indented, only subsequent nested lines will be.
+-}
 align : Doc -> Doc
 align doc =
     column
@@ -141,11 +211,17 @@ align doc =
         )
 
 
+{-| Adds an indent of the current column position to all line breaks in the document and
+a further indent of the specified number of columns.
+The first line will not be indented, only subsequent nested lines will be.
+-}
 hang : Int -> Doc -> Doc
 hang spaces doc =
     align (nest spaces doc)
 
 
+{-| Indents a whole document by a given number of spaces.
+-}
 indent : Int -> Doc -> Doc
 indent spaces doc =
     string (copy spaces " ")
@@ -157,6 +233,9 @@ indent spaces doc =
 -- ==== Pretty printing
 
 
+{-| Pretty prints a document trying to fit it as best as possible to the specified
+column width of the page.
+-}
 pretty : Int -> Doc -> String
 pretty w doc =
     layout (best w 0 doc)
