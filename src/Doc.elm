@@ -715,7 +715,6 @@ greater control during the rendering process is preferred.
 -}
 type NormalForm
     = Blank
-    | Char Char NormalForm
     | Text Int String NormalForm
     | Line Int NormalForm
 
@@ -840,9 +839,6 @@ willFit pageWidth minNestingLvl remainingLineWidth simpleDoc =
             Blank ->
                 True
 
-            Char char sDoc ->
-                willFit pageWidth minNestingLvl (remainingLineWidth - 1) sDoc
-
             Text width content sDoc ->
                 willFit pageWidth minNestingLvl (remainingLineWidth - width) sDoc
 
@@ -858,9 +854,6 @@ display simpleDoc =
     case simpleDoc of
         Blank ->
             ""
-
-        Char char sDoc ->
-            String.cons char (display sDoc)
 
         Text _ content sDoc ->
             String.append content (display sDoc)
