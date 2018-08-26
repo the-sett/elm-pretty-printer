@@ -1,45 +1,39 @@
-module Pretty
-    exposing
-        ( Doc
-        , empty
-        , space
-        , string
-        , char
-        , (|+)
-        , append
-        , join
-        , line
-        , softline
-        , align
-        , nest
-        , hang
-        , indent
-        , group
-        , surround
-        , parens
-        , braces
-        , pretty
-        )
+module Pretty exposing
+    ( Doc
+    , empty, space, string, char
+    , append, join
+    , group, line, softline
+    , align, nest, hang, indent
+    , surround, parens, braces
+    , pretty
+    )
 
 {-| Pretty printer.
+
 @docs Doc
 
 Functions for building pieces of documents from string data.
+
 @docs empty, space, string, char
 
 Functions for joining documents together
-@docs (|+), append, join
+
+@docs append, join
 
 Functions for fitting documents onto lines as space allows.
+
 @docs group, line, softline
 
 Functions for indenting and alinging documents.
+
 @docs align, nest, hang, indent
 
 Functions for putting brackets around documents.
-@docs surround, parens, braces, pretty
+
+@docs surround, parens, braces
 
 Functions for pretty printing documents.
+
 @docs pretty
 
 -}
@@ -83,16 +77,6 @@ empty =
 append : Doc -> Doc -> Doc
 append =
     Concatenate
-
-
-infixr 6 |+
-
-
-{-| Appends two documents together.
--}
-(|+) : Doc -> Doc -> Doc
-(|+) =
-    append
 
 
 {-| Adds an indent of the given number of spaces to all line breakss in the document.
@@ -159,7 +143,7 @@ nesting =
 -}
 surround : Doc -> Doc -> Doc -> Doc
 surround left right doc =
-    left |+ doc |+ right
+    append (append left doc) right
 
 
 {-| Creates a line break that will render to a single space if the documents it
@@ -175,7 +159,7 @@ softline =
 join : Doc -> List Doc -> Doc
 join sep docs =
     List.intersperse sep docs
-        |> List.foldr (\doc -> \remainder -> doc |+ remainder) empty
+        |> List.foldr append empty
 
 
 {-| Creates a document consisting of a single space.
@@ -224,8 +208,7 @@ hang spaces doc =
 -}
 indent : Int -> Doc -> Doc
 indent spaces doc =
-    string (copy spaces " ")
-        |+ doc
+    append (string (copy spaces " ")) doc
         |> hang spaces
 
 
@@ -248,14 +231,14 @@ pretty w doc =
 flatten : Doc -> Doc
 flatten doc =
     case doc of
-        Concatenate doc doc2 ->
-            Concatenate (flatten doc) (flatten doc2)
+        Concatenate doc1 doc2 ->
+            Concatenate (flatten doc1) (flatten doc2)
 
-        Nest i doc ->
-            Nest i <| flatten doc
+        Nest i doc1 ->
+            Nest i <| flatten doc1
 
-        Union doc doc2 ->
-            flatten doc
+        Union doc1 doc2 ->
+            flatten doc1
 
         Line ->
             Text " "
@@ -270,23 +253,24 @@ layout normal =
         NNil ->
             ""
 
-        NText text normal ->
-            text ++ layout normal
+        NText text innerNormal ->
+            text ++ layout innerNormal
 
-        NLine i normal ->
-            "\n" ++ copy i " " ++ layout normal
+        NLine i innerNormal ->
+            "\n" ++ copy i " " ++ layout innerNormal
 
 
 copy : Int -> String -> String
 copy i s =
     if i == 0 then
         ""
+
     else
         s ++ copy (i - 1) s
 
 
 best : Int -> Int -> Doc -> Normal
-best w k x =
+best width startCol x =
     let
         be : Int -> Int -> List ( Int, Doc ) -> Normal
         be w k docs =
@@ -304,7 +288,7 @@ best w k x =
                     be w k <| ( i + j, doc ) :: ds
 
                 ( i, Text text ) :: ds ->
-                    NText text <| be w (k + (String.length text)) ds
+                    NText text <| be w (k + String.length text) ds
 
                 ( i, Line ) :: ds ->
                     NLine i <| be w i ds
@@ -313,7 +297,7 @@ best w k x =
                     better w
                         k
                         (be w k <| ( i, doc ) :: ds)
-                        (\() -> (be w k <| ( i, doc2 ) :: ds))
+                        (\() -> be w k <| ( i, doc2 ) :: ds)
 
                 ( i, Nesting fn ) :: ds ->
                     be w k <| ( i, fn i ) :: ds
@@ -321,13 +305,14 @@ best w k x =
                 ( i, Column fn ) :: ds ->
                     be w k <| ( i, fn k ) :: ds
     in
-        be w k [ ( 0, x ) ]
+    be width startCol [ ( 0, x ) ]
 
 
 better : Int -> Int -> Normal -> (() -> Normal) -> Normal
 better w k doc doc2Fn =
     if fits (w - k) doc then
         doc
+
     else
         doc2Fn ()
 
@@ -336,13 +321,14 @@ fits : Int -> Normal -> Bool
 fits w normal =
     if w < 0 then
         False
+
     else
         case normal of
             NNil ->
                 True
 
-            NText text normal ->
-                fits (w - (String.length text)) normal
+            NText text innerNormal ->
+                fits (w - String.length text) innerNormal
 
-            NLine int normal ->
+            NLine int innerNormal ->
                 True
