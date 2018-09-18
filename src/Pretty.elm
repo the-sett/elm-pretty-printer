@@ -7,6 +7,7 @@ module Pretty
         , braces
         , char
         , empty
+        , fold
         , group
         , hang
         , indent
@@ -34,7 +35,7 @@ Functions for building pieces of documents from string data.
 
 Functions for joining documents together
 
-@docs append, a, join, lines, softlines, words
+@docs append, a, join, lines, softlines, words, fold
 
 Functions for fitting documents onto lines as space allows.
 
@@ -239,6 +240,16 @@ See also `lines`.
 words : List Doc -> Doc
 words =
     join space
+
+
+{-| Fold a list of documents from left to right using a given function.
+
+    fold f == List.foldl f empty
+
+-}
+fold : (a -> Doc -> Doc) -> List a -> Doc
+fold f =
+    List.foldl f empty
 
 
 {-| Creates a document consisting of a single space.
