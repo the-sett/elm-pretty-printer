@@ -30,27 +30,33 @@ module Pretty
 
 @docs Doc
 
-Functions for building pieces of documents from string data.
+
+# Building documents from string data
 
 @docs empty, space, string, char
 
-Functions for joining documents together
+
+# Joining documents together
 
 @docs append, a, join, lines, softlines, words, fold
 
-Functions for fitting documents onto lines as space allows.
+
+# Fitting documents onto lines
 
 @docs group, line, softline
 
-Functions for indenting and alinging documents.
+
+# Indenting and alinging documents
 
 @docs align, nest, hang, indent
 
-Functions for putting brackets around documents.
+
+# Putting things around documents
 
 @docs surround, parens, braces, brackets
 
-Functions for pretty printing documents.
+
+# Pretty printing documents
 
 @docs pretty
 
