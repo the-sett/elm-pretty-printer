@@ -1,12 +1,24 @@
-module Pretty exposing
-    ( Doc
-    , empty, space, string, char
-    , append, join
-    , group, line, softline
-    , align, nest, hang, indent
-    , surround, parens, braces
-    , pretty
-    )
+module Pretty
+    exposing
+        ( Doc
+        , align
+        , append
+        , braces
+        , char
+        , empty
+        , group
+        , hang
+        , indent
+        , join
+        , line
+        , nest
+        , parens
+        , pretty
+        , softline
+        , space
+        , string
+        , surround
+        )
 
 {-| Pretty printer.
 
@@ -59,7 +71,7 @@ type Normal
 
 
 
--- ==== Document constructors
+-- Document constructors -------------------------------------------------------
 
 
 {-| Creates an empty document.
@@ -132,7 +144,7 @@ nesting =
 
 
 
--- ==== Document helper functions
+-- Document helper functions ---------------------------------------------------
 
 
 {-| Places a document inside left and right book ends.
@@ -213,7 +225,7 @@ indent spaces doc =
 
 
 
--- ==== Pretty printing
+-- Pretty printing -------------------------------------------------------------
 
 
 {-| Pretty prints a document trying to fit it as best as possible to the specified
@@ -225,7 +237,7 @@ pretty w doc =
 
 
 
--- ==== Internals
+-- Internals -------------------------------------------------------------------
 
 
 flatten : Doc -> Doc
