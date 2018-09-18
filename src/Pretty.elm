@@ -5,6 +5,7 @@ module Pretty
         , align
         , append
         , braces
+        , brackets
         , char
         , empty
         , fold
@@ -47,7 +48,7 @@ Functions for indenting and alinging documents.
 
 Functions for putting brackets around documents.
 
-@docs surround, parens, braces
+@docs surround, parens, braces, brackets
 
 Functions for pretty printing documents.
 
@@ -271,6 +272,13 @@ parens doc =
 braces : Doc -> Doc
 braces doc =
     surround (char '{') (char '}') doc
+
+
+{-| Wraps a document in brackets.
+-}
+brackets : Doc -> Doc
+brackets =
+    surround (char '[') (char ']')
 
 
 {-| Adds an indent of the current column position to all line breaks in the document.
