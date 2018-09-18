@@ -12,13 +12,16 @@ module Pretty
         , indent
         , join
         , line
+        , lines
         , nest
         , parens
         , pretty
         , softline
+        , softlines
         , space
         , string
         , surround
+        , words
         )
 
 {-| Pretty printer.
@@ -31,7 +34,7 @@ Functions for building pieces of documents from string data.
 
 Functions for joining documents together
 
-@docs append, a, join
+@docs append, a, join, lines, softlines, words
 
 Functions for fitting documents onto lines as space allows.
 
@@ -190,6 +193,52 @@ join : Doc -> List Doc -> Doc
 join sep docs =
     List.intersperse sep docs
         |> List.foldr append empty
+
+
+{-| Concatenate a list of documents together interspersed with lines.
+Very convenient when laying out lines after another:
+
+    lines
+      [ string "Heading"
+      , empty
+      , words [string "First", string "paragraph"]
+      ...
+      ]
+
+    ==
+
+    string "Heading"
+      |> a line
+      |> a line
+      |> a (string "First")
+      |> a space
+      |> a (string "paragraph")
+      ...
+
+See also `words`.
+
+-}
+lines : List Doc -> Doc
+lines =
+    join line
+
+
+{-| Like `lines` but uses `softline` instaed.
+-}
+softlines : List Doc -> Doc
+softlines =
+    join softline
+
+
+{-| Concatenate a list of documents together interspersed with spaces.
+Very convenient when laying out words after another.
+
+See also `lines`.
+
+-}
+words : List Doc -> Doc
+words =
+    join space
 
 
 {-| Creates a document consisting of a single space.
