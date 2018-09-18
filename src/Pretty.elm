@@ -1,6 +1,7 @@
 module Pretty
     exposing
         ( Doc
+        , a
         , align
         , append
         , braces
@@ -30,7 +31,7 @@ Functions for building pieces of documents from string data.
 
 Functions for joining documents together
 
-@docs append, join
+@docs append, a, join
 
 Functions for fitting documents onto lines as space allows.
 
@@ -49,6 +50,8 @@ Functions for pretty printing documents.
 @docs pretty
 
 -}
+
+import Basics.Extra exposing (flip)
 
 
 {-| The type of documents that can be pretty printed.
@@ -145,6 +148,21 @@ nesting =
 
 
 -- Document helper functions ---------------------------------------------------
+
+
+{-| Short hand notation for append.
+Usefull when appending multiple parts together:
+
+    string "Hello"
+      |> a space
+      |> a "World"
+      |> a (char '!')
+      |> a line
+
+-}
+a : Doc -> Doc -> Doc
+a =
+    flip append
 
 
 {-| Places a document inside left and right book ends.
