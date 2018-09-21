@@ -1,42 +1,68 @@
-module Pretty exposing
-    ( Doc
-    , empty, space, string, char
-    , append, join
-    , group, line, softline
-    , align, nest, hang, indent
-    , surround, parens, braces
-    , pretty
-    )
+module Pretty
+    exposing
+        ( Doc
+        , a
+        , align
+        , append
+        , braces
+        , brackets
+        , char
+        , empty
+        , fold
+        , group
+        , hang
+        , indent
+        , join
+        , line
+        , lines
+        , nest
+        , parens
+        , pretty
+        , softline
+        , softlines
+        , space
+        , string
+        , surround
+        , words
+        )
 
 {-| Pretty printer.
 
 @docs Doc
 
-Functions for building pieces of documents from string data.
+
+# Building documents from string data
 
 @docs empty, space, string, char
 
-Functions for joining documents together
 
-@docs append, join
+# Joining documents together
 
-Functions for fitting documents onto lines as space allows.
+@docs append, a, join, lines, softlines, words, fold
+
+
+# Fitting documents onto lines
 
 @docs group, line, softline
 
-Functions for indenting and alinging documents.
+
+# Indenting and alinging documents
 
 @docs align, nest, hang, indent
 
-Functions for putting brackets around documents.
 
-@docs surround, parens, braces
+# Putting things around documents
 
-Functions for pretty printing documents.
+@docs surround, parens, braces, brackets
+
+
+# Pretty printing documents
 
 @docs pretty
 
 -}
+
+import Basics.Extra exposing (flip)
 
 
 {-| The type of documents that can be pretty printed.
@@ -59,7 +85,7 @@ type Normal
 
 
 
--- ==== Document constructors
+-- Document constructors -------------------------------------------------------
 
 
 {-| Creates an empty document.
@@ -132,7 +158,22 @@ nesting =
 
 
 
--- ==== Document helper functions
+-- Document helper functions ---------------------------------------------------
+
+
+{-| Short hand notation for append.
+Usefull when appending multiple parts together:
+
+    string "Hello"
+      |> a space
+      |> a "World"
+      |> a (char '!')
+      |> a line
+
+-}
+a : Doc -> Doc -> Doc
+a =
+    flip append
 
 
 {-| Places a document inside left and right book ends.
@@ -162,6 +203,62 @@ join sep docs =
         |> List.foldr append empty
 
 
+{-| Concatenate a list of documents together interspersed with lines.
+Very convenient when laying out lines after another:
+
+    lines
+      [ string "Heading"
+      , empty
+      , words [string "First", string "paragraph"]
+      ...
+      ]
+
+    ==
+
+    string "Heading"
+      |> a line
+      |> a line
+      |> a (string "First")
+      |> a space
+      |> a (string "paragraph")
+      ...
+
+See also `words`.
+
+-}
+lines : List Doc -> Doc
+lines =
+    join line
+
+
+{-| Like `lines` but uses `softline` instaed.
+-}
+softlines : List Doc -> Doc
+softlines =
+    join softline
+
+
+{-| Concatenate a list of documents together interspersed with spaces.
+Very convenient when laying out words after another.
+
+See also `lines`.
+
+-}
+words : List Doc -> Doc
+words =
+    join space
+
+
+{-| Fold a list of documents from left to right using a given function.
+
+    fold f == List.foldl f empty
+
+-}
+fold : (a -> Doc -> Doc) -> List a -> Doc
+fold f =
+    List.foldl f empty
+
+
 {-| Creates a document consisting of a single space.
 -}
 space : Doc
@@ -181,6 +278,13 @@ parens doc =
 braces : Doc -> Doc
 braces doc =
     surround (char '{') (char '}') doc
+
+
+{-| Wraps a document in brackets.
+-}
+brackets : Doc -> Doc
+brackets =
+    surround (char '[') (char ']')
 
 
 {-| Adds an indent of the current column position to all line breaks in the document.
@@ -213,7 +317,7 @@ indent spaces doc =
 
 
 
--- ==== Pretty printing
+-- Pretty printing -------------------------------------------------------------
 
 
 {-| Pretty prints a document trying to fit it as best as possible to the specified
@@ -225,7 +329,7 @@ pretty w doc =
 
 
 
--- ==== Internals
+-- Internals -------------------------------------------------------------------
 
 
 flatten : Doc -> Doc
