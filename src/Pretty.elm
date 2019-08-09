@@ -335,15 +335,21 @@ flatten doc =
 
 layout : Normal -> String
 layout normal =
-    case normal of
-        NNil ->
-            ""
+    let
+        layoutInner : Normal -> List String
+        layoutInner normal2 =
+            case normal2 of
+                NNil ->
+                    []
 
-        NText text innerNormal ->
-            text ++ layout (innerNormal ())
+                NText text innerNormal ->
+                    text :: layoutInner (innerNormal ())
 
-        NLine i innerNormal ->
-            "\n" ++ copy i " " ++ layout (innerNormal ())
+                NLine i innerNormal ->
+                    "\n" :: (copy i " " :: layoutInner (innerNormal ()))
+    in
+    layoutInner normal
+        |> String.concat
 
 
 copy : Int -> String -> String
