@@ -321,7 +321,7 @@ flatten doc =
             Concatenate (flatten doc1) (flatten doc2)
 
         Nest i doc1 ->
-            Nest i <| flatten doc1
+            Nest i (flatten doc1)
 
         Union doc1 doc2 ->
             flatten doc1
