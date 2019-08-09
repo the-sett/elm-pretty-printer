@@ -1,30 +1,12 @@
-module Pretty
-    exposing
-        ( Doc
-        , a
-        , align
-        , append
-        , braces
-        , brackets
-        , char
-        , empty
-        , fold
-        , group
-        , hang
-        , indent
-        , join
-        , line
-        , lines
-        , nest
-        , parens
-        , pretty
-        , softline
-        , softlines
-        , space
-        , string
-        , surround
-        , words
-        )
+module Pretty exposing
+    ( Doc
+    , empty, space, string, char
+    , append, a, join, lines, softlines, words, fold
+    , group, line, softline
+    , align, nest, hang, indent
+    , surround, parens, braces, brackets
+    , pretty
+    )
 
 {-| Pretty printer.
 
@@ -80,8 +62,8 @@ type Doc
 
 type Normal
     = NNil
-    | NText String Normal
-    | NLine Int Normal
+    | NText String (() -> Normal)
+    | NLine Int (() -> Normal)
 
 
 
@@ -165,10 +147,10 @@ nesting =
 Usefull when appending multiple parts together:
 
     string "Hello"
-      |> a space
-      |> a "World"
-      |> a (char '!')
-      |> a line
+        |> a space
+        |> a "World"
+        |> a (char '!')
+        |> a line
 
 -}
 a : Doc -> Doc -> Doc
@@ -358,10 +340,10 @@ layout normal =
             ""
 
         NText text innerNormal ->
-            text ++ layout innerNormal
+            text ++ layout (innerNormal ())
 
         NLine i innerNormal ->
-            "\n" ++ copy i " " ++ layout innerNormal
+            "\n" ++ copy i " " ++ layout (innerNormal ())
 
 
 copy : Int -> String -> String
@@ -386,28 +368,28 @@ best width startCol x =
                     be w k ds
 
                 ( i, Concatenate doc doc2 ) :: ds ->
-                    be w k <| ( i, doc ) :: ( i, doc2 ) :: ds
+                    be w k (( i, doc ) :: ( i, doc2 ) :: ds)
 
                 ( i, Nest j doc ) :: ds ->
-                    be w k <| ( i + j, doc ) :: ds
+                    be w k (( i + j, doc ) :: ds)
 
                 ( i, Text text ) :: ds ->
-                    NText text <| be w (k + String.length text) ds
+                    NText text (\() -> be w (k + String.length text) ds)
 
                 ( i, Line ) :: ds ->
-                    NLine i <| be w i ds
+                    NLine i (\() -> be w i ds)
 
                 ( i, Union doc doc2 ) :: ds ->
                     better w
                         k
-                        (be w k <| ( i, doc ) :: ds)
-                        (\() -> be w k <| ( i, doc2 ) :: ds)
+                        (be w k (( i, doc ) :: ds))
+                        (\() -> be w k (( i, doc2 ) :: ds))
 
                 ( i, Nesting fn ) :: ds ->
-                    be w k <| ( i, fn i ) :: ds
+                    be w k (( i, fn i ) :: ds)
 
                 ( i, Column fn ) :: ds ->
-                    be w k <| ( i, fn k ) :: ds
+                    be w k (( i, fn k ) :: ds)
     in
     be width startCol [ ( 0, x ) ]
 
@@ -432,7 +414,7 @@ fits w normal =
                 True
 
             NText text innerNormal ->
-                fits (w - String.length text) innerNormal
+                fits (w - String.length text) (innerNormal ())
 
             NLine int innerNormal ->
                 True
