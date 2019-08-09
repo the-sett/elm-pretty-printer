@@ -336,19 +336,20 @@ flatten doc =
 layout : Normal -> String
 layout normal =
     let
-        layoutInner : Normal -> List String
-        layoutInner normal2 =
+        layoutInner : Normal -> List String -> List String
+        layoutInner normal2 acc =
             case normal2 of
                 NNil ->
-                    []
+                    acc
 
                 NText text innerNormal ->
-                    text :: layoutInner (innerNormal ())
+                    layoutInner (innerNormal ()) (text :: acc)
 
                 NLine i innerNormal ->
-                    "\n" :: (copy i " " :: layoutInner (innerNormal ()))
+                    layoutInner (innerNormal ()) (("\n" ++ copy i " ") :: acc)
     in
-    layoutInner normal
+    layoutInner normal []
+        |> List.reverse
         |> String.concat
 
 
