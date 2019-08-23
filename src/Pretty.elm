@@ -1,16 +1,22 @@
 module Pretty exposing
     ( Doc
+    , pretty
     , empty, space, string, char
     , append, a, join, lines, softlines, words, fold
     , group, line, softline
     , align, nest, hang, indent
     , surround, parens, braces, brackets
-    , pretty
     )
 
-{-| Pretty printer.
+{-| Wadler's Pretty printer. Use the constructor functions to build up a `Doc` and
+lay it out to fit a page width using the `pretty` function.
 
 @docs Doc
+
+
+# Pretty printing documents
+
+@docs pretty
 
 
 # Building documents from string data
@@ -36,11 +42,6 @@ module Pretty exposing
 # Putting things around documents
 
 @docs surround, parens, braces, brackets
-
-
-# Pretty printing documents
-
-@docs pretty
 
 -}
 
