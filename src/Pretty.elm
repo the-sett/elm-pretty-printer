@@ -70,7 +70,12 @@ type Normal
 -- Document constructors -------------------------------------------------------
 
 
-{-| Creates an empty document.
+{-| Creates an empty document. Empties are discarded during pretty printing.
+
+Note that the `join`, `lines`, `softlines` and `words` functions also filter
+out empties. So if a list of `Docs` are joined by spaces any that are empty will
+be dircarded and not result in a double space in the result. For this reason
+empty is not the same as `string ""`.
 
     pretty 10 empty == ""
 
@@ -178,11 +183,35 @@ softline =
 
 
 {-| Concatenates a list of documents together interspersed with a separator document.
+
+Any `empty` docs in the list are dropped, so that multiple separators will not be
+placed together with nothing in between them. If this behaviour is intended use
+`string ""` instead of `empty`.
+
 -}
 join : Doc -> List Doc -> Doc
 join sep docs =
-    List.intersperse sep docs
-        |> List.foldr append empty
+    case docs of
+        [] ->
+            empty
+
+        Empty :: ds ->
+            join sep ds
+
+        d :: ds ->
+            let
+                step x rest =
+                    case x of
+                        Empty ->
+                            rest
+
+                        doc ->
+                            append sep (append doc rest)
+
+                spersed =
+                    List.foldr step empty ds
+            in
+            append d spersed
 
 
 {-| Concatenate a list of documents together interspersed with lines.
@@ -205,6 +234,9 @@ Very convenient when laying out lines after another:
       |> a (string "paragraph")
       ...
 
+Any empty docs in the list are dropped, so multiple lines will not be inserted
+around any empties.
+
 See also `words`.
 
 -}
@@ -213,7 +245,11 @@ lines =
     join line
 
 
-{-| Like `lines` but uses `softline` instaed.
+{-| Like `lines` but uses `softline` instead.
+
+Any empty docs in the list are dropped, so multiple lines will not be inserted
+around any empties.
+
 -}
 softlines : List Doc -> Doc
 softlines =
@@ -224,6 +260,9 @@ softlines =
 Very convenient when laying out words after another.
 
 See also `lines`.
+
+Any empty docs in the list are dropped, so multiple spaces will not be inserted
+around any empties.
 
 -}
 words : List Doc -> Doc
