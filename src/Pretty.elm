@@ -386,7 +386,16 @@ layout normal =
                     layoutInner (innerNormal ()) (text :: acc)
 
                 NLine i innerNormal ->
-                    layoutInner (innerNormal ()) (("\n" ++ copy i " ") :: acc)
+                    let
+                        norm =
+                            innerNormal ()
+                    in
+                    case norm of
+                        NLine _ _ ->
+                            layoutInner (innerNormal ()) ("\n" :: acc)
+
+                        _ ->
+                            layoutInner (innerNormal ()) (("\n" ++ copy i " ") :: acc)
     in
     layoutInner normal []
         |> List.reverse
