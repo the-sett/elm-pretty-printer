@@ -2,7 +2,7 @@ module Pretty exposing
     ( Doc
     , pretty
     , empty, space, string, char
-    , append, a, join, lines, softlines, words, fold
+    , append, a, join, lines, separators, softlines, words, fold
     , group, line, softline
     , align, nest, hang, indent
     , surround, parens, braces, brackets
@@ -26,7 +26,7 @@ lay it out to fit a page width using the `pretty` function.
 
 # Joining documents together
 
-@docs append, a, join, lines, softlines, words, fold
+@docs append, a, join, lines, separators, softlines, words, fold
 
 
 # Fitting documents onto lines
@@ -55,7 +55,7 @@ type Doc
     | Concatenate Doc Doc
     | Nest Int Doc
     | Text String
-    | Line
+    | Line String
     | Union Doc Doc
     | Nesting (Int -> Doc)
     | Column (Int -> Doc)
@@ -64,7 +64,7 @@ type Doc
 type Normal
     = NNil
     | NText String (() -> Normal)
-    | NLine Int (() -> Normal)
+    | NLine Int String (() -> Normal)
 
 
 
@@ -120,7 +120,7 @@ at the current indentation level.
 -}
 line : Doc
 line =
-    Line
+    Line ""
 
 
 {-| Tries to fit a document on a single line, replacing line breaks with single spaces
@@ -180,7 +180,7 @@ separtes can be fitted onto one line, or a line break otherwise.
 -}
 softline : Doc
 softline =
-    group Line
+    Line "" |> group
 
 
 {-| Concatenates a list of documents together interspersed with a separator document.
@@ -220,7 +220,6 @@ Very convenient when laying out lines after another:
 
     lines
       [ string "Heading"
-      , empty
       , words [string "First", string "paragraph"]
       ...
       ]
@@ -228,7 +227,6 @@ Very convenient when laying out lines after another:
     ==
 
     string "Heading"
-      |> a line
       |> a line
       |> a (string "First")
       |> a space
@@ -244,6 +242,60 @@ See also `words`.
 lines : List Doc -> Doc
 lines =
     join line
+
+
+{-| Concatenates a list of documents together interspersed with lines and
+separator strings. This is convenient when laying out lines where each line
+begins with a separator, for example if commas are to go on the start rather
+than the ends of lines:
+
+    separators ", "
+      [ string "Heading"
+      , words [string "First", string "paragraph"]
+      ...
+      ]
+
+    ==
+
+    string "Heading"
+      |> a line
+      |> a (string ", ")
+      |> a (string "First")
+      |> a space
+      |> a (string "paragraph")
+      ...
+
+The separator string is kept with the line break. If lines built in this way
+are placed into a `group`, then the inline version of the group will include
+the separators. The broken version of the group will have the separators after
+any indentation but otherwise at the start of each line.
+
+    separators ", "
+      [ string "One"
+      , string "Two"
+      ...
+      ]
+      |> group
+
+Can render as:
+
+      One, Two, ...
+
+Or
+
+      One
+      , Two
+      , ...
+
+Any empty docs in the list are dropped, so multiple lines will not be inserted
+around any empties.
+
+See also `words`.
+
+-}
+separators : String -> List Doc -> Doc
+separators sep =
+    Line sep |> join
 
 
 {-| Like `lines` but uses `softline` instead.
@@ -366,8 +418,13 @@ flatten doc =
         Union doc1 doc2 ->
             flatten doc1
 
-        Line ->
-            Text " "
+        Line sep ->
+            case sep of
+                "" ->
+                    Text " "
+
+                _ ->
+                    Text sep
 
         x ->
             x
@@ -385,17 +442,17 @@ layout normal =
                 NText text innerNormal ->
                     layoutInner (innerNormal ()) (text :: acc)
 
-                NLine i innerNormal ->
+                NLine i sep innerNormal ->
                     let
                         norm =
                             innerNormal ()
                     in
                     case norm of
-                        NLine _ _ ->
-                            layoutInner (innerNormal ()) ("\n" :: acc)
+                        NLine _ _ _ ->
+                            layoutInner (innerNormal ()) (("\n" ++ sep) :: acc)
 
                         _ ->
-                            layoutInner (innerNormal ()) (("\n" ++ copy i " ") :: acc)
+                            layoutInner (innerNormal ()) (("\n" ++ copy i " " ++ sep) :: acc)
     in
     layoutInner normal []
         |> List.reverse
@@ -432,8 +489,8 @@ best width startCol x =
                 ( i, Text text ) :: ds ->
                     NText text (\() -> be w (k + String.length text) ds)
 
-                ( i, Line ) :: ds ->
-                    NLine i (\() -> be w i ds)
+                ( i, Line sep ) :: ds ->
+                    NLine i sep (\() -> be w i ds)
 
                 ( i, Union doc doc2 ) :: ds ->
                     better w
@@ -472,5 +529,5 @@ fits w normal =
             NText text innerNormal ->
                 fits (w - String.length text) (innerNormal ())
 
-            NLine int innerNormal ->
+            NLine _ _ _ ->
                 True
