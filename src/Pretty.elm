@@ -3,7 +3,7 @@ module Pretty exposing
     , pretty
     , empty, space, string, char
     , append, a, join, lines, separators, softlines, words, fold
-    , group, line, softline
+    , group, line, tightline, softline
     , align, nest, hang, indent
     , surround, parens, braces, brackets
     )
@@ -31,7 +31,7 @@ lay it out to fit a page width using the `pretty` function.
 
 # Fitting documents onto lines
 
-@docs group, line, softline
+@docs group, line, tightline, softline
 
 
 # Indenting and alinging documents
@@ -55,7 +55,7 @@ type Doc
     | Concatenate Doc Doc
     | Nest Int Doc
     | Text String
-    | Line String
+    | Line String String
     | Union Doc Doc
     | Nesting (Int -> Doc)
     | Column (Int -> Doc)
@@ -115,12 +115,50 @@ char c =
     Text <| String.fromChar c
 
 
-{-| Creates a hard line break. This always creates a new line, with subsequent text
+{-| Creates a hard line break. This creates a new line, with subsequent text
 at the current indentation level.
+
+Note that a line break can be undone, when it sits beneath a `group` operation.
+If this happens and the text after the line break is printed on the same line
+then the line break will be replaced by a space character.
+
 -}
 line : Doc
 line =
-    Line ""
+    Line " " ""
+
+
+{-| Creates a hard line break. This creates a new line, with subsequent text
+at the current indentation level.
+
+Note that a line break can be undone, when it sits beneath a `group` operation.
+If this happens and the text after the line break is printed on the same line
+then this kind of line break will be replaced by an empty string; text before
+the break will flow directly into text after with no space added between.
+
+This is sometimes useful where you wan an end delimiter such as '}', ']' or ')'
+to appear on a new line when the document is broken over multiple lines, but with
+no space before it when the document is rendered on a single line. For example:
+
+    long (function and args) -- Note the bracket has no space before it.
+
+    versus
+
+    long
+        (function
+            and
+            args
+        )
+
+-}
+tightline : Doc
+tightline =
+    Line "" ""
+
+
+separator : String -> String -> Doc
+separator hsep vsep =
+    Line hsep vsep
 
 
 {-| Tries to fit a document on a single line, replacing line breaks with single spaces
@@ -176,11 +214,11 @@ surround left right doc =
 
 
 {-| Creates a line break that will render to a single space if the documents it
-separtes can be fitted onto one line, or a line break otherwise.
+separates can be fitted onto one line, or a line break otherwise.
 -}
 softline : Doc
 softline =
-    Line "" |> group
+    group line
 
 
 {-| Concatenates a list of documents together interspersed with a separator document.
@@ -295,7 +333,7 @@ See also `words`.
 -}
 separators : String -> List Doc -> Doc
 separators sep =
-    Line sep |> join
+    Line sep sep |> join
 
 
 {-| Like `lines` but uses `softline` instead.
@@ -418,13 +456,8 @@ flatten doc =
         Union doc1 doc2 ->
             flatten doc1
 
-        Line sep ->
-            case sep of
-                "" ->
-                    Text " "
-
-                _ ->
-                    Text sep
+        Line hsep _ ->
+            Text hsep
 
         x ->
             x
@@ -489,8 +522,8 @@ best width startCol x =
                 ( i, Text text ) :: ds ->
                     NText text (\() -> be w (k + String.length text) ds)
 
-                ( i, Line sep ) :: ds ->
-                    NLine i sep (\() -> be w i ds)
+                ( i, Line hsep vsep ) :: ds ->
+                    NLine i vsep (\() -> be w i ds)
 
                 ( i, Union doc doc2 ) :: ds ->
                     better w
