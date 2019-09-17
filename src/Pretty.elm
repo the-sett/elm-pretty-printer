@@ -459,6 +459,12 @@ flatten doc =
         Line hsep _ ->
             Text hsep
 
+        Nesting fn ->
+            flatten (fn 0)
+
+        Column fn ->
+            flatten (fn 0)
+
         x ->
             x
 
