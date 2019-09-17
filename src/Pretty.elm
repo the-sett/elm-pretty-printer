@@ -522,8 +522,8 @@ best width startCol x =
                 ( i, Text text ) :: ds ->
                     NText text (\() -> be w (k + String.length text) ds)
 
-                ( i, Line hsep vsep ) :: ds ->
-                    NLine i vsep (\() -> be w i ds)
+                ( i, Line _ vsep ) :: ds ->
+                    NLine i vsep (\() -> be w (i + String.length vsep) ds)
 
                 ( i, Union doc doc2 ) :: ds ->
                     better w
