@@ -15,7 +15,7 @@ flattenLongList : () -> Test
 flattenLongList _ =
     let
         testList =
-            List.repeat 10000 "test"
+            List.repeat 50000 "test"
 
         longList _ =
             testList
