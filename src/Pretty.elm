@@ -52,8 +52,8 @@ import Basics.Extra exposing (flip)
 -}
 type Doc
     = Empty
-    | Concatenate Doc Doc
-    | Nest Int Doc
+    | Concatenate (() -> Doc) (() -> Doc)
+    | Nest Int (() -> Doc)
     | Text String
     | Line String String
     | Union Doc Doc
@@ -89,16 +89,16 @@ empty =
 {-| Appends two documents together.
 -}
 append : Doc -> Doc -> Doc
-append =
-    Concatenate
+append doc1 doc2 =
+    Concatenate (\() -> doc1) (\() -> doc2)
 
 
 {-| Adds an indent of the given number of spaces to all line breakss in the document.
 The first line will not be indented, only subsequent nested lines will be.
 -}
 nest : Int -> Doc -> Doc
-nest =
-    Nest
+nest depth doc =
+    Nest depth (\() -> doc)
 
 
 {-| Creates a document from a string.
@@ -448,10 +448,10 @@ flatten : Doc -> Doc
 flatten doc =
     case doc of
         Concatenate doc1 doc2 ->
-            Concatenate (flatten doc1) (flatten doc2)
+            Concatenate (\() -> flatten (doc1 ())) (\() -> flatten (doc2 ()))
 
         Nest i doc1 ->
-            Nest i (flatten doc1)
+            Nest i (\() -> flatten (doc1 ()))
 
         Union doc1 doc2 ->
             flatten doc1
@@ -520,10 +520,10 @@ best width startCol x =
                     be w k ds
 
                 ( i, Concatenate doc doc2 ) :: ds ->
-                    be w k (( i, doc ) :: ( i, doc2 ) :: ds)
+                    be w k (( i, doc () ) :: ( i, doc2 () ) :: ds)
 
                 ( i, Nest j doc ) :: ds ->
-                    be w k (( i + j, doc ) :: ds)
+                    be w k (( i + j, doc () ) :: ds)
 
                 ( i, Text text ) :: ds ->
                     NText text (\() -> be w (k + String.length text) ds)
