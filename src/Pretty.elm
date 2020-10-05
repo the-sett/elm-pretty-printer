@@ -48,6 +48,45 @@ lay it out to fit a page width using the `pretty` function.
 import Basics.Extra exposing (flip)
 
 
+
+-- Syntax highlighting experiment
+-- type Tag
+--     = Keyword
+--
+--
+-- type alias Words =
+--     List ( String, Maybe Tag )
+--
+--
+-- example =
+--     [ ( "this", Nothing )
+--     , ( "is", Just Keyword )
+--     , ( "a", Nothing )
+--     , ( "test", Nothing )
+--     ]
+--
+--
+-- showWords : Words -> Html.Styled.Html msg
+-- showWords words =
+--     let
+--         attribute =
+--             Css.color <| Colors.highlight
+--     in
+--     div []
+--         [ List.map
+--             (\word ->
+--                 case Tuple.second word of
+--                     Nothing ->
+--                         Tuple.first word ++ " " |> text
+--
+--                     Just tag ->
+--                         styled span [ attribute ] [] [ Tuple.first word ++ " " |> text ]
+--             )
+--             words
+--             |> pre []
+--         ]
+
+
 {-| The type of documents that can be pretty printed.
 -}
 type Doc
