@@ -1,7 +1,7 @@
 module Pretty exposing
     ( Doc
     , pretty
-    , empty, space, string, char
+    , empty, space, string, taggedString, char
     , append, a, join, lines, separators, softlines, words, fold
     , group, line, tightline, softline
     , align, nest, hang, indent
@@ -21,7 +21,7 @@ lay it out to fit a page width using the `pretty` function.
 
 # Building documents from string data
 
-@docs empty, space, string, char
+@docs empty, space, string, taggedString, char
 
 
 # Joining documents together
@@ -94,6 +94,21 @@ nest depth doc =
 string : String -> Doc t
 string val =
     Text val Nothing
+
+
+{-| Creates a document from a string and tags it.
+
+Later on the tag can be used to change how the string is displayed. For example
+you might tag something as a `Keyword` then use a layout handler to show keywords
+in bold, and so on.
+
+This is intended as a way of tagging strings in a Doc for the purpose of syntax
+highlighting.
+
+-}
+taggedString : String -> t -> Doc t
+taggedString val tag =
+    Text val (Just tag)
 
 
 {-| Creates a document from a character.
