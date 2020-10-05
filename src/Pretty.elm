@@ -100,10 +100,10 @@ type Doc t
     | Column (Int -> Doc t)
 
 
-type Normal
+type Normal t
     = NNil
-    | NText String (() -> Normal)
-    | NLine Int String (() -> Normal)
+    | NText String (() -> Normal t) (Maybe t)
+    | NLine Int String (() -> Normal t)
 
 
 
@@ -508,16 +508,16 @@ flatten doc =
             x
 
 
-layout : Normal -> String
+layout : Normal t -> String
 layout normal =
     let
-        layoutInner : Normal -> List String -> List String
+        layoutInner : Normal t -> List String -> List String
         layoutInner normal2 acc =
             case normal2 of
                 NNil ->
                     acc
 
-                NText text innerNormal ->
+                NText text innerNormal maybeTag ->
                     layoutInner (innerNormal ()) (text :: acc)
 
                 NLine i sep innerNormal ->
@@ -546,10 +546,10 @@ copy i s =
         s ++ copy (i - 1) s
 
 
-best : Int -> Int -> Doc t -> Normal
+best : Int -> Int -> Doc t -> Normal t
 best width startCol x =
     let
-        be : Int -> Int -> List ( Int, Doc t ) -> Normal
+        be : Int -> Int -> List ( Int, Doc t ) -> Normal t
         be w k docs =
             case docs of
                 [] ->
@@ -564,8 +564,8 @@ best width startCol x =
                 ( i, Nest j doc ) :: ds ->
                     be w k (( i + j, doc () ) :: ds)
 
-                ( i, Text text _ ) :: ds ->
-                    NText text (\() -> be w (k + String.length text) ds)
+                ( i, Text text maybeTag ) :: ds ->
+                    NText text (\() -> be w (k + String.length text) ds) maybeTag
 
                 ( i, Line _ vsep ) :: ds ->
                     NLine i vsep (\() -> be w (i + String.length vsep) ds)
@@ -585,7 +585,7 @@ best width startCol x =
     be width startCol [ ( 0, x ) ]
 
 
-better : Int -> Int -> Normal -> (() -> Normal) -> Normal
+better : Int -> Int -> Normal t -> (() -> Normal t) -> Normal t
 better w k doc doc2Fn =
     if fits (w - k) doc then
         doc
@@ -594,7 +594,7 @@ better w k doc doc2Fn =
         doc2Fn ()
 
 
-fits : Int -> Normal -> Bool
+fits : Int -> Normal t -> Bool
 fits w normal =
     if w < 0 then
         False
@@ -604,7 +604,7 @@ fits w normal =
             NNil ->
                 True
 
-            NText text innerNormal ->
+            NText text innerNormal _ ->
                 fits (w - String.length text) (innerNormal ())
 
             NLine _ _ _ ->
