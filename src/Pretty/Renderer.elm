@@ -19,7 +19,7 @@ type alias Renderer t a b =
     { init : a
     , tagged : t -> String -> a -> a
     , untagged : String -> a -> a
-    , newline : String -> a -> a
+    , newline : a -> a
     , outer : a -> b
     }
 
@@ -48,10 +48,18 @@ layout handler normal =
                     in
                     case norm of
                         NLine _ _ _ ->
-                            layoutInner (innerNormal ()) (handler.untagged ("\n" ++ sep) acc)
+                            case sep of
+                                "" ->
+                                    layoutInner (innerNormal ())
+                                        (handler.newline acc)
+
+                                _ ->
+                                    layoutInner (innerNormal ())
+                                        (handler.untagged sep (handler.newline acc))
 
                         _ ->
-                            layoutInner (innerNormal ()) (handler.untagged ("\n" ++ Internals.copy i " " ++ sep) acc)
+                            layoutInner (innerNormal ())
+                                (handler.untagged (Internals.copy i " " ++ sep) (handler.newline acc))
     in
     layoutInner normal handler.init
         --|> List.reverse
