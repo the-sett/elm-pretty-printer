@@ -1,4 +1,4 @@
-module Pretty.Html exposing (..)
+module Pretty.Renderer exposing (..)
 
 import Internals exposing (Doc(..), Normal(..))
 
@@ -10,19 +10,19 @@ import Internals exposing (Doc(..), Normal(..))
 {-| Pretty prints a document trying to fit it as best as possible to the specified
 column width of the page.
 -}
-pretty : Int -> LayoutHandler t a -> Doc t -> a
+pretty : Int -> Renderer t a -> Doc t -> a
 pretty w handler doc =
     layout handler (Internals.best w 0 doc)
 
 
-type alias LayoutHandler t a =
+type alias Renderer t a =
     { tagged : t -> String -> List a -> List a
     , untagged : String -> List a -> List a
     , outer : List a -> a
     }
 
 
-layout : LayoutHandler t a -> Normal t -> a
+layout : Renderer t a -> Normal t -> a
 layout handler normal =
     let
         layoutInner : Normal t -> List a -> List a
