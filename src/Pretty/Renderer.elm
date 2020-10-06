@@ -10,22 +10,24 @@ import Internals exposing (Doc(..), Normal(..))
 {-| Pretty prints a document trying to fit it as best as possible to the specified
 column width of the page.
 -}
-pretty : Int -> Renderer t a -> Doc t -> a
+pretty : Int -> Renderer t a b -> Doc t -> b
 pretty w handler doc =
     layout handler (Internals.best w 0 doc)
 
 
-type alias Renderer t a =
-    { tagged : t -> String -> List a -> List a
-    , untagged : String -> List a -> List a
-    , outer : List a -> a
+type alias Renderer t a b =
+    { init : a
+    , tagged : t -> String -> a -> a
+    , untagged : String -> a -> a
+    , newline : String -> a -> a
+    , outer : a -> b
     }
 
 
-layout : Renderer t a -> Normal t -> a
+layout : Renderer t a b -> Normal t -> b
 layout handler normal =
     let
-        layoutInner : Normal t -> List a -> List a
+        layoutInner : Normal t -> a -> a
         layoutInner normal2 acc =
             case normal2 of
                 NNil ->
@@ -51,6 +53,6 @@ layout handler normal =
                         _ ->
                             layoutInner (innerNormal ()) (handler.untagged ("\n" ++ Internals.copy i " " ++ sep) acc)
     in
-    layoutInner normal []
-        |> List.reverse
+    layoutInner normal handler.init
+        --|> List.reverse
         |> handler.outer
