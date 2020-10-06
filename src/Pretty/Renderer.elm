@@ -1,4 +1,17 @@
-module Pretty.Renderer exposing (..)
+module Pretty.Renderer exposing (pretty, Renderer)
+
+{-| Pretty.Renderer lets you specify custom rendering functions to modify the
+output of the pretty printer as it is layed out. You do not need to use this
+module for the default monochrome text only rendering which can be achieved
+with `Pretty.pretty`.
+
+If you have a tagged `Doc` model, you can use the tags to do syntax highlighting
+with a custom `Renderer`. You can also turn the output into other structured
+forms such as HTML.
+
+@docs pretty, Renderer
+
+-}
 
 import Internals exposing (Doc(..), Normal(..))
 
@@ -9,12 +22,36 @@ import Internals exposing (Doc(..), Normal(..))
 
 {-| Pretty prints a document trying to fit it as best as possible to the specified
 column width of the page.
+
+A custom `Renderer` must be specified to handle the different parts of the output.
+
 -}
 pretty : Int -> Renderer t a b -> Doc t -> b
 pretty w handler doc =
     layout handler (Internals.best w 0 doc)
 
 
+{-| A custom `Renderer`.
+
+This works a bit like a `foldl` operation. Note that the text being rendered
+is folded left to right, which means if you accumulate intermediate results into
+`List`s, you will need to reverse them.
+
+  - The `init` value defines the initial state of an accumulator that is passed
+    over the entire rendering.
+
+  - Tagged and untagged string from the `Doc` are passed through the `tagged`
+    and `untagged` functions.
+
+  - When the end of a line is reached, `untagged` is invoked to update the
+    accumulator. Note that you must manually add `\n` newline character here if
+    you need one. You may not be using newlines for an HTML rendering.
+
+  - The `outer` function is invoked on the complete accumulator, and provides an
+    opportunity to complete the layout, for example by adding outer HTML tags
+    around in, and so on.
+
+-}
 type alias Renderer t a b =
     { init : a
     , tagged : t -> String -> a -> a
@@ -62,5 +99,4 @@ layout handler normal =
                                 (handler.untagged (Internals.copy i " " ++ sep) (handler.newline acc))
     in
     layoutInner normal handler.init
-        --|> List.reverse
         |> handler.outer
