@@ -1,7 +1,5 @@
 module Pretty.Html exposing (..)
 
-import Css
-import Html.Styled as Html exposing (Html)
 import Internals exposing (Doc(..), Normal(..))
 
 
@@ -12,7 +10,7 @@ import Internals exposing (Doc(..), Normal(..))
 {-| Pretty prints a document trying to fit it as best as possible to the specified
 column width of the page.
 -}
-pretty : Int -> HtmlHandler t msg -> Doc t -> Html msg
+pretty : Int -> LayoutHandler t a -> Doc t -> a
 pretty w handler doc =
     layout handler (Internals.best w 0 doc)
 
@@ -22,14 +20,6 @@ type alias LayoutHandler t a =
     , untagged : String -> List a -> List a
     , outer : List a -> a
     }
-
-
-type alias HtmlHandler t msg =
-    LayoutHandler t (Html msg)
-
-
-type alias StringHandler t =
-    LayoutHandler t String
 
 
 layout : LayoutHandler t a -> Normal t -> a
