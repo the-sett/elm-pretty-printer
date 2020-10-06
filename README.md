@@ -1,3 +1,18 @@
+**Contacts for Support**
+- @rupertlssmith on https://elmlang.slack.com
+- @rupert on https://discourse.elm-lang.org
+
+**Status**
+
+- 06-Oct-2020 - Published as version 3.0.0
+
+A type parameter has been added to `Doc` allowing `String`s in the document to
+be *tagged*. Tagged strings can then be rendered with the new `Pretty.Renderer`
+module, for syntax highlighting.
+
+The new `Pretty.Renderer` module, also makes it possible to generate non-`String`
+output formats, for example HTML.
+
 # elm-pretty-printer
 
 A pretty printing library based on ['A Prettier Printer' by Philip Wadler](https://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf).
@@ -18,3 +33,13 @@ This implementation is usually sufficiently lazy and tail-recursive to perform w
 under Elm. Occassionally an exponential blow-up can happen if the `softline` function
 is not used carefully. Plase raise a GitHub issue on this if it is not performing well
 enough for you.
+
+# Syntax Highlighting and rendering to HTML
+
+The `Pretty.Renderer` module allows for finer control over how the output is produced.
+
+This requires a `Renderer` specification to be set up that provides
+call-back functions that will be used when tagged strings in the document are
+encountered, and also at line ends.
+
+This is left folded over the output using whatever accumulator type you need in order to transform the output.

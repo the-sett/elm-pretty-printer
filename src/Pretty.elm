@@ -1,7 +1,7 @@
 module Pretty exposing
     ( Doc
     , pretty
-    , empty, space, string, char
+    , empty, space, string, taggedString, char
     , append, a, join, lines, separators, softlines, words, fold
     , group, line, tightline, softline
     , align, nest, hang, indent
@@ -21,7 +21,7 @@ lay it out to fit a page width using the `pretty` function.
 
 # Building documents from string data
 
-@docs empty, space, string, char
+@docs empty, space, string, taggedString, char
 
 
 # Joining documents together
@@ -46,25 +46,13 @@ lay it out to fit a page width using the `pretty` function.
 -}
 
 import Basics.Extra exposing (flip)
+import Internals exposing (..)
 
 
 {-| The type of documents that can be pretty printed.
 -}
-type Doc
-    = Empty
-    | Concatenate (() -> Doc) (() -> Doc)
-    | Nest Int (() -> Doc)
-    | Text String
-    | Line String String
-    | Union Doc Doc
-    | Nesting (Int -> Doc)
-    | Column (Int -> Doc)
-
-
-type Normal
-    = NNil
-    | NText String (() -> Normal)
-    | NLine Int String (() -> Normal)
+type alias Doc t =
+    Internals.Doc t
 
 
 
@@ -81,14 +69,14 @@ empty is not the same as `string ""`.
     pretty 10 empty == ""
 
 -}
-empty : Doc
+empty : Doc t
 empty =
     Empty
 
 
 {-| Appends two documents together.
 -}
-append : Doc -> Doc -> Doc
+append : Doc t -> Doc t -> Doc t
 append doc1 doc2 =
     Concatenate (\() -> doc1) (\() -> doc2)
 
@@ -96,23 +84,38 @@ append doc1 doc2 =
 {-| Adds an indent of the given number of spaces to all line breakss in the document.
 The first line will not be indented, only subsequent nested lines will be.
 -}
-nest : Int -> Doc -> Doc
+nest : Int -> Doc t -> Doc t
 nest depth doc =
     Nest depth (\() -> doc)
 
 
 {-| Creates a document from a string.
 -}
-string : String -> Doc
-string =
-    Text
+string : String -> Doc t
+string val =
+    Text val Nothing
+
+
+{-| Creates a document from a string and tags it.
+
+Later on the tag can be used to change how the string is displayed. For example
+you might tag something as a `Keyword` then use a layout handler to show keywords
+in bold, and so on.
+
+This is intended as a way of tagging strings in a Doc for the purpose of syntax
+highlighting.
+
+-}
+taggedString : String -> t -> Doc t
+taggedString val tag =
+    Text val (Just tag)
 
 
 {-| Creates a document from a character.
 -}
-char : Char -> Doc
+char : Char -> Doc t
 char c =
-    Text <| String.fromChar c
+    Text (String.fromChar c) Nothing
 
 
 {-| Creates a hard line break. This creates a new line, with subsequent text
@@ -123,7 +126,7 @@ If this happens and the text after the line break is printed on the same line
 then the line break will be replaced by a space character.
 
 -}
-line : Doc
+line : Doc t
 line =
     Line " " ""
 
@@ -151,12 +154,12 @@ no space before it when the document is rendered on a single line. For example:
         )
 
 -}
-tightline : Doc
+tightline : Doc t
 tightline =
     Line "" ""
 
 
-separator : String -> String -> Doc
+separator : String -> String -> Doc t
 separator hsep vsep =
     Line hsep vsep
 
@@ -164,21 +167,21 @@ separator hsep vsep =
 {-| Tries to fit a document on a single line, replacing line breaks with single spaces
 where possible to achieve this.
 -}
-group : Doc -> Doc
+group : Doc t -> Doc t
 group doc =
     Union (flatten doc) doc
 
 
 {-| Allows a document to be created from the current column position.
 -}
-column : (Int -> Doc) -> Doc
+column : (Int -> Doc t) -> Doc t
 column =
     Column
 
 
 {-| Allows a document to be created from the current indentation degree.
 -}
-nesting : (Int -> Doc) -> Doc
+nesting : (Int -> Doc t) -> Doc t
 nesting =
     Nesting
 
@@ -197,7 +200,7 @@ Usefull when appending multiple parts together:
         |> a line
 
 -}
-a : Doc -> Doc -> Doc
+a : Doc t -> Doc t -> Doc t
 a =
     flip append
 
@@ -208,7 +211,7 @@ a =
       == "\hello/"
 
 -}
-surround : Doc -> Doc -> Doc -> Doc
+surround : Doc t -> Doc t -> Doc t -> Doc t
 surround left right doc =
     append (append left doc) right
 
@@ -216,7 +219,7 @@ surround left right doc =
 {-| Creates a line break that will render to a single space if the documents it
 separates can be fitted onto one line, or a line break otherwise.
 -}
-softline : Doc
+softline : Doc t
 softline =
     group line
 
@@ -228,7 +231,7 @@ placed together with nothing in between them. If this behaviour is intended use
 `string ""` instead of `empty`.
 
 -}
-join : Doc -> List Doc -> Doc
+join : Doc t -> List (Doc t) -> Doc t
 join sep docs =
     case docs of
         [] ->
@@ -277,7 +280,7 @@ around any empties.
 See also `words`.
 
 -}
-lines : List Doc -> Doc
+lines : List (Doc t) -> Doc t
 lines =
     join line
 
@@ -331,7 +334,7 @@ around any empties.
 See also `words`.
 
 -}
-separators : String -> List Doc -> Doc
+separators : String -> List (Doc t) -> Doc t
 separators sep =
     Line sep sep |> join
 
@@ -342,7 +345,7 @@ Any empty docs in the list are dropped, so multiple lines will not be inserted
 around any empties.
 
 -}
-softlines : List Doc -> Doc
+softlines : List (Doc t) -> Doc t
 softlines =
     join softline
 
@@ -356,7 +359,7 @@ Any empty docs in the list are dropped, so multiple spaces will not be inserted
 around any empties.
 
 -}
-words : List Doc -> Doc
+words : List (Doc t) -> Doc t
 words =
     join space
 
@@ -366,35 +369,35 @@ words =
     fold f == List.foldl f empty
 
 -}
-fold : (a -> Doc -> Doc) -> List a -> Doc
+fold : (a -> Doc t -> Doc t) -> List a -> Doc t
 fold f =
     List.foldl f empty
 
 
 {-| Creates a document consisting of a single space.
 -}
-space : Doc
+space : Doc t
 space =
     char ' '
 
 
 {-| Wraps a document in parnethesese
 -}
-parens : Doc -> Doc
+parens : Doc t -> Doc t
 parens doc =
     surround (char '(') (char ')') doc
 
 
 {-| Wraps a document in braces.
 -}
-braces : Doc -> Doc
+braces : Doc t -> Doc t
 braces doc =
     surround (char '{') (char '}') doc
 
 
 {-| Wraps a document in brackets.
 -}
-brackets : Doc -> Doc
+brackets : Doc t -> Doc t
 brackets =
     surround (char '[') (char ']')
 
@@ -402,7 +405,7 @@ brackets =
 {-| Adds an indent of the current column position to all line breaks in the document.
 The first line will not be indented, only subsequent nested lines will be.
 -}
-align : Doc -> Doc
+align : Doc t -> Doc t
 align doc =
     column
         (\currentColumn ->
@@ -415,14 +418,14 @@ align doc =
 a further indent of the specified number of columns.
 The first line will not be indented, only subsequent nested lines will be.
 -}
-hang : Int -> Doc -> Doc
+hang : Int -> Doc t -> Doc t
 hang spaces doc =
     align (nest spaces doc)
 
 
 {-| Indents a whole document by a given number of spaces.
 -}
-indent : Int -> Doc -> Doc
+indent : Int -> Doc t -> Doc t
 indent spaces doc =
     append (string (copy spaces " ")) doc
         |> hang spaces
@@ -435,138 +438,6 @@ indent spaces doc =
 {-| Pretty prints a document trying to fit it as best as possible to the specified
 column width of the page.
 -}
-pretty : Int -> Doc -> String
+pretty : Int -> Doc t -> String
 pretty w doc =
     layout (best w 0 doc)
-
-
-
--- Internals -------------------------------------------------------------------
-
-
-flatten : Doc -> Doc
-flatten doc =
-    case doc of
-        Concatenate doc1 doc2 ->
-            Concatenate (\() -> flatten (doc1 ())) (\() -> flatten (doc2 ()))
-
-        Nest i doc1 ->
-            Nest i (\() -> flatten (doc1 ()))
-
-        Union doc1 doc2 ->
-            flatten doc1
-
-        Line hsep _ ->
-            Text hsep
-
-        Nesting fn ->
-            flatten (fn 0)
-
-        Column fn ->
-            flatten (fn 0)
-
-        x ->
-            x
-
-
-layout : Normal -> String
-layout normal =
-    let
-        layoutInner : Normal -> List String -> List String
-        layoutInner normal2 acc =
-            case normal2 of
-                NNil ->
-                    acc
-
-                NText text innerNormal ->
-                    layoutInner (innerNormal ()) (text :: acc)
-
-                NLine i sep innerNormal ->
-                    let
-                        norm =
-                            innerNormal ()
-                    in
-                    case norm of
-                        NLine _ _ _ ->
-                            layoutInner (innerNormal ()) (("\n" ++ sep) :: acc)
-
-                        _ ->
-                            layoutInner (innerNormal ()) (("\n" ++ copy i " " ++ sep) :: acc)
-    in
-    layoutInner normal []
-        |> List.reverse
-        |> String.concat
-
-
-copy : Int -> String -> String
-copy i s =
-    if i == 0 then
-        ""
-
-    else
-        s ++ copy (i - 1) s
-
-
-best : Int -> Int -> Doc -> Normal
-best width startCol x =
-    let
-        be : Int -> Int -> List ( Int, Doc ) -> Normal
-        be w k docs =
-            case docs of
-                [] ->
-                    NNil
-
-                ( i, Empty ) :: ds ->
-                    be w k ds
-
-                ( i, Concatenate doc doc2 ) :: ds ->
-                    be w k (( i, doc () ) :: ( i, doc2 () ) :: ds)
-
-                ( i, Nest j doc ) :: ds ->
-                    be w k (( i + j, doc () ) :: ds)
-
-                ( i, Text text ) :: ds ->
-                    NText text (\() -> be w (k + String.length text) ds)
-
-                ( i, Line _ vsep ) :: ds ->
-                    NLine i vsep (\() -> be w (i + String.length vsep) ds)
-
-                ( i, Union doc doc2 ) :: ds ->
-                    better w
-                        k
-                        (be w k (( i, doc ) :: ds))
-                        (\() -> be w k (( i, doc2 ) :: ds))
-
-                ( i, Nesting fn ) :: ds ->
-                    be w k (( i, fn i ) :: ds)
-
-                ( i, Column fn ) :: ds ->
-                    be w k (( i, fn k ) :: ds)
-    in
-    be width startCol [ ( 0, x ) ]
-
-
-better : Int -> Int -> Normal -> (() -> Normal) -> Normal
-better w k doc doc2Fn =
-    if fits (w - k) doc then
-        doc
-
-    else
-        doc2Fn ()
-
-
-fits : Int -> Normal -> Bool
-fits w normal =
-    if w < 0 then
-        False
-
-    else
-        case normal of
-            NNil ->
-                True
-
-            NText text innerNormal ->
-                fits (w - String.length text) (innerNormal ())
-
-            NLine _ _ _ ->
-                True
