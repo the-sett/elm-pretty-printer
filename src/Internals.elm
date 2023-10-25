@@ -22,6 +22,31 @@ type Normal t
 -- Internals -------------------------------------------------------------------
 
 
+updateTag : (String -> Maybe t -> Maybe t) -> Doc t -> Doc t
+updateTag updateFn doc =
+    case doc of
+        Concatenate doc1 doc2 ->
+            Concatenate (\() -> updateTag updateFn (doc1 ())) (\() -> updateTag updateFn (doc2 ()))
+
+        Nest i doc1 ->
+            Nest i (\() -> updateTag updateFn (doc1 ()))
+
+        Text text maybeTag ->
+            Text text (updateFn text maybeTag)
+
+        Union doc1 doc2 ->
+            Union (updateTag updateFn doc1) (updateTag updateFn doc2)
+
+        Nesting fn ->
+            Nesting (\i -> updateTag updateFn (fn i))
+
+        Column fn ->
+            Column (\i -> updateTag updateFn (fn i))
+
+        x ->
+            x
+
+
 flatten : Doc t -> Doc t
 flatten doc =
     case doc of

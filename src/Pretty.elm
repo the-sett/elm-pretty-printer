@@ -6,6 +6,7 @@ module Pretty exposing
     , group, line, tightline, softline
     , align, nest, hang, indent
     , surround, parens, braces, brackets
+    , setTag, updateTag
     )
 
 {-| Wadler's Pretty printer. Use the constructor functions to build up a `Doc` and
@@ -42,6 +43,11 @@ lay it out to fit a page width using the `pretty` function.
 # Putting things around documents
 
 @docs surround, parens, braces, brackets
+
+
+# Updating tags in documents
+
+@docs setTag, updateTag
 
 -}
 
@@ -429,6 +435,23 @@ indent : Int -> Doc t -> Doc t
 indent spaces doc =
     append (string (copy spaces " ")) doc
         |> hang spaces
+
+
+{-| Set the tag of every string in the document.
+-}
+setTag : t -> Doc t -> Doc t
+setTag tag =
+    updateTag (\_ _ -> Just tag)
+
+
+{-| Conditionally update the tag of every string in the document.
+
+The update function is called with the string and its current tag and should
+return a new tag for the string or `Nothing` to remove the current tag.
+-}
+updateTag : (String -> Maybe t -> Maybe t) -> Doc t -> Doc t
+updateTag =
+    Internals.updateTag
 
 
 
