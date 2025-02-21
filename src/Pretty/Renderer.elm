@@ -70,33 +70,56 @@ layout handler normal =
                 NNil ->
                     acc
 
-                NText text innerNormal maybeTag ->
+                NText text inner maybeTag ->
                     case maybeTag of
                         Just tag ->
-                            layoutInner (innerNormal ()) (handler.tagged tag text acc)
+                            layoutInner inner (handler.tagged tag text acc)
+                        Nothing ->
+                            layoutInner inner (handler.untagged text acc)
+
+                LText text thunk maybeTag ->
+                    case maybeTag of
+                        Just tag ->
+                            layoutInner (thunk ()) (handler.tagged tag text acc)
 
                         Nothing ->
-                            layoutInner (innerNormal ()) (handler.untagged text acc)
+                            layoutInner (thunk ()) (handler.untagged text acc)
 
-                NLine i sep innerNormal ->
+                NLine i sep norm ->
+                    case norm of
+                        NLine _ _ _ ->
+                            case sep of
+                                "" ->
+                                    layoutInner norm
+                                        (handler.newline acc)
+
+                                _ ->
+                                    layoutInner norm
+                                        (handler.untagged sep (handler.newline acc))
+
+                        _ ->
+                            layoutInner norm
+                                (handler.untagged (String.repeat i " " ++ sep) (handler.newline acc))
+
+                LLine i sep thunk ->
                     let
                         norm =
-                            innerNormal ()
+                            thunk ()
                     in
                     case norm of
                         NLine _ _ _ ->
                             case sep of
                                 "" ->
-                                    layoutInner (innerNormal ())
+                                    layoutInner norm
                                         (handler.newline acc)
 
                                 _ ->
-                                    layoutInner (innerNormal ())
+                                    layoutInner norm
                                         (handler.untagged sep (handler.newline acc))
 
                         _ ->
-                            layoutInner (innerNormal ())
-                                (handler.untagged (Internals.copy i " " ++ sep) (handler.newline acc))
+                            layoutInner norm
+                                (handler.untagged (String.repeat i " " ++ sep) (handler.newline acc))
     in
     layoutInner normal handler.init
         |> handler.outer

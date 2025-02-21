@@ -61,7 +61,6 @@ type alias Doc t =
     Internals.Doc t
 
 
-
 -- Document constructors -------------------------------------------------------
 
 
@@ -84,7 +83,7 @@ empty =
 -}
 append : Doc t -> Doc t -> Doc t
 append doc1 doc2 =
-    Concatenate (\() -> doc1) (\() -> doc2)
+    Concatenate doc1 doc2
 
 
 {-| Adds an indent of the given number of spaces to all line breakss in the document.
@@ -92,7 +91,7 @@ The first line will not be indented, only subsequent nested lines will be.
 -}
 nest : Int -> Doc t -> Doc t
 nest depth doc =
-    Nest depth (\() -> doc)
+    Nest depth doc
 
 
 {-| Creates a document from a string.
@@ -433,7 +432,7 @@ hang spaces doc =
 -}
 indent : Int -> Doc t -> Doc t
 indent spaces doc =
-    append (string (copy spaces " ")) doc
+    append (string (String.repeat spaces " ")) doc
         |> hang spaces
 
 
