@@ -74,6 +74,7 @@ layout handler normal =
                     case maybeTag of
                         Just tag ->
                             layoutInner inner (handler.tagged tag text acc)
+
                         Nothing ->
                             layoutInner inner (handler.untagged text acc)
 
