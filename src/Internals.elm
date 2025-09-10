@@ -60,7 +60,25 @@ flatten : Doc t -> Doc t
 flatten doc =
     case doc of
         Concatenate doc1 doc2 ->
-            Concatenate (flatten doc1) (flatten doc2)
+            let
+                go : List (Doc t) -> List (Doc t) -> Doc t
+                go queue acc =
+                    case queue of
+                        [] ->
+                            case acc of
+                                [] ->
+                                    Empty
+
+                                h :: t ->
+                                    List.foldl Concatenate h t
+
+                        (Concatenate h1 h2) :: t ->
+                            go (h1 :: h2 :: t) acc
+
+                        h :: t ->
+                            go t (flatten h :: acc)
+            in
+            go [ doc1, doc2 ] []
 
         Nest i (Nest j doc1) ->
             flatten (Nest (i + j) doc1)
