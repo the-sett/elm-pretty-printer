@@ -56,6 +56,9 @@ flatten doc =
         Concatenate doc1 doc2 ->
             Concatenate (flatten doc1) (flatten doc2)
 
+        Nest i (Nest j doc1) ->
+            flatten (Nest (i + j) doc1)
+
         Nest i doc1 ->
             Nest i (flatten doc1)
 
