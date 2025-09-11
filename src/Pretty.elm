@@ -61,6 +61,7 @@ type alias Doc t =
     Internals.Doc t
 
 
+
 -- Document constructors -------------------------------------------------------
 
 
@@ -447,6 +448,7 @@ setTag tag =
 
 The update function is called with the string and its current tag and should
 return a new tag for the string or `Nothing` to remove the current tag.
+
 -}
 updateTag : (String -> Maybe t -> Maybe t) -> Doc t -> Doc t
 updateTag =

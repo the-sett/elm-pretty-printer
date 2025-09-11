@@ -1,5 +1,6 @@
 module Internals exposing (..)
 
+
 type Doc t
     = Empty
     | Concatenate (Doc t) (Doc t)
@@ -10,9 +11,13 @@ type Doc t
     | Nesting (Int -> Doc t)
     | Column (Int -> Doc t)
 
+
+
 -- Normal form of documents
--- N* constructors have continuations that are already evaluated 
+-- N* constructors have continuations that are already evaluated
 -- L* constructors have continuations that are delayed (thunks)
+
+
 type Normal t
     = NNil
     | NText String (Normal t) (Maybe t)
@@ -20,8 +25,9 @@ type Normal t
       --
     | NLine Int String (Normal t)
     | LLine Int String (() -> Normal t)
-      
-     
+
+
+
 -- Internals -------------------------------------------------------------------
 
 
@@ -89,12 +95,13 @@ layout normal =
 
                 NText text norm _ ->
                     layoutInner norm (text :: acc)
-                        
+
                 LText text thunk _ ->
                     let
-                        norm = thunk ()
+                        norm =
+                            thunk ()
                     in
-                        layoutInner norm (text :: acc)
+                    layoutInner norm (text :: acc)
 
                 NLine i sep norm ->
                     case norm of
@@ -103,92 +110,106 @@ layout normal =
 
                         _ ->
                             layoutInner norm (("\n" ++ String.repeat i " " ++ sep) :: acc)
-                    
-                LLine i sep thunk ->
-                    let norm = thunk ()
-                    in 
-                        case norm of
-                            NLine _ _ _ ->
-                                layoutInner norm (("\n" ++ sep) :: acc)
 
-                            _ ->
-                                layoutInner norm (("\n" ++ String.repeat i " " ++ sep) :: acc)
+                LLine i sep thunk ->
+                    let
+                        norm =
+                            thunk ()
+                    in
+                    case norm of
+                        NLine _ _ _ ->
+                            layoutInner norm (("\n" ++ sep) :: acc)
+
+                        _ ->
+                            layoutInner norm (("\n" ++ String.repeat i " " ++ sep) :: acc)
     in
     layoutInner normal []
         |> List.reverse
         |> String.concat
 
 
-
 best : Int -> Int -> Doc t -> Normal t
-best width startCol x = be width startCol [ ( 0, x ) ]
+best width startCol x =
+    be width startCol [ ( 0, x ) ]
+
 
 be : Int -> Int -> List ( Int, Doc t ) -> Normal t
-be w k docs
-    = case docs of
+be w k docs =
+    case docs of
         [] ->
             NNil
 
-        (i, Empty) :: ds  ->
+        ( i, Empty ) :: ds ->
             be w k ds
 
-        (i, Concatenate doc1 doc2) :: ds ->
-            be w k ((i, doc1) :: (i, doc2) :: ds)
+        ( i, Concatenate doc1 doc2 ) :: ds ->
+            be w k (( i, doc1 ) :: ( i, doc2 ) :: ds)
 
-        (i, Nest j doc) :: ds ->
-            be w k ((i + j, doc) :: ds)
+        ( i, Nest j doc ) :: ds ->
+            be w k (( i + j, doc ) :: ds)
 
-        (i, Text text maybeTag) :: ds ->
+        ( i, Text text maybeTag ) :: ds ->
             LText text (\_ -> be w (k + String.length text) ds) maybeTag
 
-        (i, Line _ vsep) :: ds ->
+        ( i, Line _ vsep ) :: ds ->
             LLine i vsep (\_ -> be w (i + String.length vsep) ds)
-                                         
-        (i, Union doc1 doc2) :: ds ->
+
+        ( i, Union doc1 doc2 ) :: ds ->
             better w
-                   k
-                   (be w k ((i,doc1)::ds))
-                   (\_ -> be w k ((i,doc2)::ds))
+                k
+                (be w k (( i, doc1 ) :: ds))
+                (\_ -> be w k (( i, doc2 ) :: ds))
 
-        (i, Nesting fn) :: ds ->
-             be w k (( i, fn i ) :: ds)
+        ( i, Nesting fn ) :: ds ->
+            be w k (( i, fn i ) :: ds)
 
-        (i, Column fn) :: ds ->
-             be w k (( i, fn k ) :: ds)
+        ( i, Column fn ) :: ds ->
+            be w k (( i, fn k ) :: ds)
 
 
-better : Int -> Int -> Normal t -> (()->Normal t) -> Normal t
+better : Int -> Int -> Normal t -> (() -> Normal t) -> Normal t
 better w k norm thunk =
     case fits (w - k) norm of
-        (True, norm1) ->
+        ( True, norm1 ) ->
             norm1
+
         _ ->
             thunk ()
 
+
+
 -- this returns a new normal form to avoid recomputations
-fits : Int -> Normal t -> (Bool, Normal t)
+
+
+fits : Int -> Normal t -> ( Bool, Normal t )
 fits w norm =
     if w < 0 then
-        (False, norm)
+        ( False, norm )
+
     else
         case norm of
             NNil ->
-                (True, norm)
+                ( True, norm )
 
             NText text norm1 tag ->
                 let
-                    (b, rest) = fits (w-String.length text) norm1
+                    ( b, rest ) =
+                        fits (w - String.length text) norm1
                 in
-                    (b, NText text rest tag)
+                ( b, NText text rest tag )
+
             LText text thunk tag ->
                 let
-                    norm1 = thunk ()
-                    (b, rest) = fits (w-String.length text) norm1
+                    norm1 =
+                        thunk ()
+
+                    ( b, rest ) =
+                        fits (w - String.length text) norm1
                 in
-                    (b, NText text rest tag)
+                ( b, NText text rest tag )
 
             NLine _ _ _ ->
-                (True, norm)
-                    
+                ( True, norm )
+
             LLine _ _ _ ->
-                (True, norm)
+                ( True, norm )
