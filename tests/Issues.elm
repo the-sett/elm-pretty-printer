@@ -1,29 +1,22 @@
-module Issues exposing (..)
+module Issues exposing (suite)
 
-import Expect exposing (Expectation)
-import Pretty exposing (Doc)
+import Expect
+import Pretty
 import Test exposing (Test)
 
 
 suite : Test
 suite =
     Test.describe "Github Issue Tests"
-        [ flattenLongList () ]
+        [ flattenLongList ]
 
 
-flattenLongList : () -> Test
-flattenLongList _ =
-    let
-        testList =
-            List.repeat 50000 "test"
-
-        longList _ =
-            testList
-                |> List.map Pretty.string
+flattenLongList : Test
+flattenLongList =
+    Test.test "#3 Check long list of appends can be grouped without overflowing the stack." <|
+        \_ ->
+            Pretty.string "test"
+                |> List.repeat 50000
                 |> Pretty.lines
                 |> Pretty.group
                 |> always Expect.pass
-    in
-    Test.test
-        "#3 Check long list of appends can be grouped without overflowing the stack."
-        longList
