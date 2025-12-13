@@ -4,7 +4,20 @@ This document captures the essential insights and design rationale for the elm-p
 
 ## Origins
 
-This library implements Philip Wadler's "A Prettier Printer" algorithm, ported from the Haskell Wadler/Leijen pretty-printer. The core insight is that pretty printing is about making choices: when content fits on one line, keep it together; when it doesn't, break it across multiple lines with proper indentation.
+This library implements Philip Wadler's "A Prettier Printer" algorithm, extended with features from the Wadler/Leijen pretty-printer tradition. The core insight is that pretty printing is about making choices: when content fits on one line, keep it together; when it doesn't, break it across multiple lines with proper indentation.
+
+**What comes from Wadler's original paper:**
+- The `Doc` tree structure with `Empty`, `Concatenate`, `Nest`, `Text`, `Line`, `Union`
+- The `group`/`flatten` mechanism for creating layout choices
+- The greedy "best" layout algorithm
+
+**What comes from Wadler/Leijen extensions:**
+- `Column (Int -> Doc)` and `Nesting (Int -> Doc)` — query current layout context
+- `align`, `hang`, `indent` — derived from Column/Nesting
+- The tagging system (`Maybe t` on Text) for syntax highlighting
+
+**What differs from both:**
+- `Line String String` carries two separator strings rather than just being a newline (see below)
 
 ## The Central Abstraction: Doc
 
@@ -12,17 +25,23 @@ A `Doc t` is not a string—it's a *description of possible layouts*. When you b
 
 ```elm
 type Doc t
-    = Empty
-    | Concatenate (Doc t) (Doc t)
-    | Nest Int (Doc t)
-    | Text String (Maybe t)
-    | Line String String        -- (hsep, vsep)
-    | Union (Doc t) (Doc t)     -- key to the algorithm
-    | Nesting (Int -> Doc t)
-    | Column (Int -> Doc t)
+    = Empty                     -- nothing
+    | Concatenate (Doc t) (Doc t)  -- sequencing
+    | Nest Int (Doc t)          -- add indentation for line breaks
+    | Text String (Maybe t)     -- literal text, optionally tagged
+    | Line String String        -- (hsep, vsep) - see below
+    | Union (Doc t) (Doc t)     -- choice: left is flatter (INVARIANT)
+    | Nesting (Int -> Doc t)    -- Wadler/Leijen: query indent level
+    | Column (Int -> Doc t)     -- Wadler/Leijen: query column position
 ```
 
-The `Union` constructor is the heart of the algorithm. It represents a choice between two layouts—typically "flattened" (single line) vs "broken" (multiple lines).
+**The `Line` constructor** differs from Wadler's original. In his paper, `Line` is just a newline. Here, `Line hsep vsep` carries two strings:
+- `hsep` (horizontal separator): used when flattened onto one line
+- `vsep` (vertical separator): printed after the newline when broken
+
+This enables `line` (hsep=" ", vsep="") and `tightline` (hsep="", vsep=""), as well as the `separators` combinator where both are the same string (e.g., `", "`).
+
+**The `Union` constructor** is the heart of the algorithm. It represents a choice between two layouts. Crucially, it has an **invariant**: the left branch must always be "flatter" than the right (see below).
 
 ## The Two-Phase Model
 
@@ -89,6 +108,14 @@ Use `tightline` for closing delimiters that should have no space:
 
 `group doc` creates a `Union (flatten doc) doc`—it tries the flattened version first, falls back to broken if it doesn't fit.
 
+**How `flatten` works:**
+- `Line hsep _` → `Text hsep` (replaces line break with horizontal separator)
+- `Union left _` → `flatten left` (always takes the flatter branch)
+- `Nesting fn` → `flatten (fn 0)` (assumes indent level 0)
+- `Column fn` → `flatten (fn 0)` (assumes column 0)
+
+The last two are necessary because when flattening, we're computing a hypothetical single-line layout where indentation and column context don't apply in the same way.
+
 The algorithm is **greedy**: it makes decisions left-to-right without backtracking. Once it commits to flattening a group, it's committed. This means:
 
 1. **Early content affects later layout**: If you consume width early, later groups have less room.
@@ -101,6 +128,30 @@ outer = group (lines [ string "outer1", inner ])
 inner = group (lines [ string "a", string "b" ])
 -- Output: "outer1\na b"
 ```
+
+## Key Insight: The Union Invariant
+
+For the greedy algorithm to work correctly, every `Union left right` must satisfy:
+
+> **The first line of `left` is at least as long as the first line of `right`.**
+
+This invariant is maintained by `group`, which constructs `Union (flatten doc) doc`. Since `flatten` replaces line breaks with spaces (or removes them), the flattened version always has a longer (or equal) first line.
+
+**Why this matters:** The layout algorithm checks only whether the left branch fits. If it does, left is chosen (longer first line is preferred when both fit). If it doesn't fit, right is chosen (must break). The invariant guarantees this greedy choice is always correct—we never need to backtrack.
+
+```elm
+-- In Internals.elm, the algorithm:
+( i, Union doc1 doc2 ) :: ds ->
+    better w k
+        (be w k (( i, doc1 ) :: ds))       -- try left (flatter)
+        (\_ -> be w k (( i, doc2 ) :: ds)) -- fallback to right
+
+-- 'better' just checks if left fits:
+better w k norm thunk =
+    if fits (w - k) norm then norm else thunk ()
+```
+
+If you manually construct a `Union` that violates this invariant, you may get incorrect layouts.
 
 ## Key Insight: `align` and Column-Relative Indentation
 
@@ -137,9 +188,32 @@ separators ", " [ string "a", string "b", string "c" ] |> group
 
 ## Performance Considerations
 
-1. **Lazy evaluation**: The `Normal` type uses thunks (`LText`, `LLine`) to defer computation.
-2. **Stack safety**: The `flatten` function uses a queue-based algorithm to handle very long concatenation chains without stack overflow.
-3. **Greedy fitting**: The `fits` function short-circuits as soon as it knows the answer.
+### The Normal Type (Lazy Evaluation)
+
+Wadler's algorithm has two representations:
+- `Doc t`: the tree you build with combinators (may contain `Union` choices)
+- `Normal t`: the linearized output after layout decisions are made (no choices remain)
+
+```elm
+type Normal t
+    = NNil
+    | NText String (Normal t) (Maybe t)    -- eager: rest already computed
+    | LText String (() -> Normal t) (Maybe t)  -- lazy: rest is a thunk
+    | NLine Int String (Normal t)
+    | LLine Int String (() -> Normal t)
+```
+
+The `L*` variants (LText, LLine) defer computation using thunks. This is critical: when checking if the left branch of a `Union` fits, we don't want to fully evaluate the right branch. The `better` function takes the right branch as `(() -> Normal t)`, only forcing it if the left doesn't fit.
+
+### Stack Safety
+
+The `flatten` function uses a queue-based algorithm to handle very long concatenation chains without stack overflow. Instead of recursing into `Concatenate` nodes, it collects them into a work queue.
+
+### Greedy Fitting
+
+The `fits` function short-circuits as soon as it knows the answer:
+- Returns `True` immediately when it hits a `Line` (line break means it fits)
+- Returns `False` immediately when width goes negative
 
 ## Algebraic Properties
 
