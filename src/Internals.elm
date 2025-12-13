@@ -148,46 +148,57 @@ layout normal =
 
 best : Int -> Int -> Doc t -> Normal t
 best width startCol x =
-    be width startCol [ ( 0, x ) ]
+    be width width startCol [ ( 0, x ) ]
 
 
-be : Int -> Int -> List ( Int, Doc t ) -> Normal t
-be w k docs =
+bestWithRibbon : Int -> Int -> Int -> Doc t -> Normal t
+bestWithRibbon width ribbonWidth startCol x =
+    be width ribbonWidth startCol [ ( 0, x ) ]
+
+
+be : Int -> Int -> Int -> List ( Int, Doc t ) -> Normal t
+be w r k docs =
     case docs of
         [] ->
             NNil
 
         ( i, Empty ) :: ds ->
-            be w k ds
+            be w r k ds
 
         ( i, Concatenate doc1 doc2 ) :: ds ->
-            be w k (( i, doc1 ) :: ( i, doc2 ) :: ds)
+            be w r k (( i, doc1 ) :: ( i, doc2 ) :: ds)
 
         ( i, Nest j doc ) :: ds ->
-            be w k (( i + j, doc ) :: ds)
+            be w r k (( i + j, doc ) :: ds)
 
         ( i, Text text maybeTag ) :: ds ->
-            LText text (\_ -> be w (k + String.length text) ds) maybeTag
+            LText text (\_ -> be w r (k + String.length text) ds) maybeTag
 
         ( i, Line _ vsep ) :: ds ->
-            LLine i vsep (\_ -> be w (i + String.length vsep) ds)
+            LLine i vsep (\_ -> be w r (i + String.length vsep) ds)
 
         ( i, Union doc1 doc2 ) :: ds ->
             better w
+                r
+                i
                 k
-                (be w k (( i, doc1 ) :: ds))
-                (\_ -> be w k (( i, doc2 ) :: ds))
+                (be w r k (( i, doc1 ) :: ds))
+                (\_ -> be w r k (( i, doc2 ) :: ds))
 
         ( i, Nesting fn ) :: ds ->
-            be w k (( i, fn i ) :: ds)
+            be w r k (( i, fn i ) :: ds)
 
         ( i, Column fn ) :: ds ->
-            be w k (( i, fn k ) :: ds)
+            be w r k (( i, fn k ) :: ds)
 
 
-better : Int -> Int -> Normal t -> (() -> Normal t) -> Normal t
-better w k norm thunk =
-    case fits (w - k) norm of
+better : Int -> Int -> Int -> Int -> Normal t -> (() -> Normal t) -> Normal t
+better w r i k norm thunk =
+    let
+        effectiveWidth =
+            min w (i + r)
+    in
+    case fits (effectiveWidth - k) norm of
         ( True, norm1 ) ->
             norm1
 

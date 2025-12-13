@@ -215,6 +215,33 @@ The `fits` function short-circuits as soon as it knows the answer:
 - Returns `True` immediately when it hits a `Line` (line break means it fits)
 - Returns `False` immediately when width goes negative
 
+## Key Insight: Ribbon Width
+
+The standard `pretty w doc` uses page width `w` as the only constraint. But deeply nested code can drift rightward, leaving most of the line as whitespace. The **ribbon width** addresses this.
+
+The ribbon is the "visible content" of a line—characters excluding leading indentation. With `prettyWithRibbon { pageWidth, ribbonWidth }`, the effective line limit at indentation level `i` is:
+
+```
+effectiveWidth = min(pageWidth, i + ribbonWidth)
+```
+
+**Example:** With `pageWidth = 80` and `ribbonWidth = 40`:
+- At indent 0: effective = min(80, 0+40) = 40
+- At indent 30: effective = min(80, 30+40) = 70
+- At indent 50: effective = min(80, 50+40) = 80 (page width dominates)
+
+This keeps content compact at shallow indentation while allowing full width when deeply nested code genuinely needs it.
+
+```elm
+-- Without ribbon: deeply nested code can use full 80 columns
+pretty 80 doc
+
+-- With ribbon: nested code breaks earlier, staying readable
+prettyWithRibbon { pageWidth = 80, ribbonWidth = 40 } doc
+```
+
+If `ribbonWidth >= pageWidth`, behavior is identical to `pretty pageWidth`.
+
 ## Algebraic Properties
 
 These properties hold and are verified by tests:

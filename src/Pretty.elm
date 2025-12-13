@@ -1,6 +1,6 @@
 module Pretty exposing
     ( Doc
-    , pretty
+    , pretty, prettyWithRibbon
     , empty, space, string, taggedString, char
     , append, a, join, lines, separators, softlines, words, fold
     , group, line, tightline, softline
@@ -17,7 +17,7 @@ lay it out to fit a page width using the `pretty` function.
 
 # Pretty printing documents
 
-@docs pretty
+@docs pretty, prettyWithRibbon
 
 
 # Building documents from string data
@@ -35,7 +35,7 @@ lay it out to fit a page width using the `pretty` function.
 @docs group, line, tightline, softline
 
 
-# Indenting and alinging documents
+# Indenting and aligning documents
 
 @docs align, nest, hang, indent
 
@@ -371,14 +371,10 @@ words =
     join space
 
 
-{-| Left fold over a list, starting from `empty`. Useful for custom joining:
+{-| Left fold over a list, starting from `empty`.
 
-    -- Join with " -> " between items
-    fold (\item acc ->
-        if acc == empty then string item
-        else acc |> a (string " -> ") |> a (string item)
-    ) [ "a", "b", "c" ]
-    -- "a -> b -> c"
+    fold (\item acc -> acc |> a (string item)) [ "a", "b", "c" ]
+    -- "abc"
 
 -}
 fold : (a -> Doc t -> Doc t) -> List a -> Doc t
@@ -518,3 +514,25 @@ remaining line, it stays flat; otherwise it breaks.
 pretty : Int -> Doc t -> String
 pretty w doc =
     layout (best w 0 doc)
+
+
+{-| Renders a document with both page width and ribbon width constraints.
+
+The ribbon width limits non-indentation characters per line. At indentation
+level `i`, the effective width is `min(pageWidth, i + ribbonWidth)`.
+
+    prettyWithRibbon { pageWidth = 80, ribbonWidth = 40 } doc
+
+This keeps deeply nested code compact. At indent 50 with ribbon 40, lines
+break at column 80 (not 90), preventing rightward drift.
+
+If `ribbonWidth >= pageWidth`, behaves identically to `pretty pageWidth`.
+
+-}
+prettyWithRibbon : { pageWidth : Int, ribbonWidth : Int } -> Doc t -> String
+prettyWithRibbon { pageWidth, ribbonWidth } doc =
+    let
+        effectiveRibbon =
+            min ribbonWidth pageWidth
+    in
+    layout (bestWithRibbon pageWidth effectiveRibbon 0 doc)
