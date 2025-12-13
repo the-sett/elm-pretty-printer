@@ -3,49 +3,49 @@ module Pretty exposing
     , pretty, prettyWithRibbon
     , empty, space, string, taggedString, char
     , append, a, join, lines, separators, softlines, words, fold
-    , group, line, tightline, softline
+    , group, line, tightline, softline, flatAlt, ifFlat, ifBreak
     , align, nest, hang, indent
     , surround, parens, braces, brackets
     , setTag, updateTag
     )
 
-{-| Wadler's Pretty printer. Use the constructor functions to build up a `Doc` and
-lay it out to fit a page width using the `pretty` function.
+{-| A Wadler/Leijen-style pretty printer. Build documents with combinators,
+then render them to fit a page width.
 
 @docs Doc
 
 
-# Pretty printing documents
+# Rendering
 
 @docs pretty, prettyWithRibbon
 
 
-# Building documents from string data
+# Primitives
 
 @docs empty, space, string, taggedString, char
 
 
-# Joining documents together
+# Combining Documents
 
 @docs append, a, join, lines, separators, softlines, words, fold
 
 
-# Fitting documents onto lines
+# Layout Control
 
-@docs group, line, tightline, softline
+@docs group, line, tightline, softline, flatAlt, ifFlat, ifBreak
 
 
-# Indenting and aligning documents
+# Indentation
 
 @docs align, nest, hang, indent
 
 
-# Putting things around documents
+# Delimiters
 
 @docs surround, parens, braces, brackets
 
 
-# Updating tags in documents
+# Tagging
 
 @docs setTag, updateTag
 
@@ -55,14 +55,13 @@ import Basics.Extra exposing (flip)
 import Internals exposing (..)
 
 
-{-| A document describes possible layouts for pretty printing. The type parameter
-`t` allows tagging text for syntax highlighting.
+{-| A document represents possible layouts. The `t` parameter allows tagging
+strings for syntax highlighting (see `Pretty.Renderer`).
 
-Build documents with combinators like `string`, `line`, `nest`, then render with `pretty`:
+    doc = group (string "hello" |> a line |> a (string "world"))
 
-    pretty 40 (group (nest 4 (string "hello" |> a line |> a (string "world"))))
-    -- Fits on one line: "hello world"
-    -- If too wide: "hello\n    world"
+    pretty 20 doc  -- "hello world"
+    pretty 5 doc   -- "hello\nworld"
 
 -}
 type alias Doc t =
@@ -275,6 +274,57 @@ break decision:
 softline : Doc t
 softline =
     group line
+
+
+{-| Choose between two documents based on flat vs broken mode.
+
+    group (flatAlt (string "flat") (string "broken"))
+    -- Wide: "flat"  |  Narrow: "broken"
+
+Without a surrounding `group`, always uses the broken (second) argument.
+
+Unlike `line`/`tightline` which vary a single token, `flatAlt` allows entirely
+different document structures in each mode:
+
+    -- Different paren spacing: "(x)" when flat, "( x\n)" when broken
+    group (flatAlt
+        (char '(' |> a x |> a (char ')'))
+        (string "( " |> a x |> a line |> a (char ')'))
+    )
+
+-}
+flatAlt : Doc t -> Doc t -> Doc t
+flatAlt flatDoc brokenDoc =
+    FlatAlt flatDoc brokenDoc
+
+
+{-| Includes a document only in flat mode; becomes empty when broken.
+
+    group (string "items" |> a (ifFlat (string " (inline)")))
+    -- Wide: "items (inline)"
+    -- Narrow: "items"
+
+Equivalent to `flatAlt doc empty`.
+
+-}
+ifFlat : Doc t -> Doc t
+ifFlat doc =
+    FlatAlt doc Empty
+
+
+{-| Includes a document only when broken; becomes empty in flat mode.
+
+    -- Trailing comma only in multi-line mode
+    group (lines [ string "a" |> a (ifBreak (char ',')), string "b" ])
+    -- Wide: "a b"
+    -- Narrow: "a,\nb"
+
+Equivalent to `flatAlt empty doc`.
+
+-}
+ifBreak : Doc t -> Doc t
+ifBreak doc =
+    FlatAlt Empty doc
 
 
 {-| Joins documents with a separator between each pair. Empty documents are

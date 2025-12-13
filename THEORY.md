@@ -30,6 +30,7 @@ type Doc t
     | Nest Int (Doc t)          -- add indentation for line breaks
     | Text String (Maybe t)     -- literal text, optionally tagged
     | Line String String        -- (hsep, vsep) - see below
+    | FlatAlt (Doc t) (Doc t)   -- (flat, broken) - mode-dependent content
     | Union (Doc t) (Doc t)     -- choice: left is flatter (INVARIANT)
     | Nesting (Int -> Doc t)    -- Wadler/Leijen: query indent level
     | Column (Int -> Doc t)     -- Wadler/Leijen: query column position
@@ -104,12 +105,68 @@ Use `tightline` for closing delimiters that should have no space:
 -- Use tightline before closing paren
 ```
 
+## Key Insight: `flatAlt` for Mode-Dependent Content
+
+While `line` and `tightline` let you vary a single separator token between flat and broken modes, sometimes you need entirely different document structures. That's what `flatAlt` provides.
+
+```elm
+flatAlt flatDoc brokenDoc
+```
+
+- In **flat mode** (inside a `group` that fits): renders `flatDoc`
+- In **broken mode** (no group, or group doesn't fit): renders `brokenDoc`
+
+**Critical distinction from `Union`:** A `Union` is a width-based choice—the algorithm picks whichever fits. A `FlatAlt` is a mode-based choice—it's resolved structurally by `flatten`, not by the fitting algorithm.
+
+**How it integrates:**
+- `flatten (FlatAlt f _) = flatten f` — flattening selects the flat alternative
+- In `be`, `FlatAlt _ b` becomes `b` — the layout engine uses the broken alternative
+
+This means `FlatAlt` respects the decision made by an enclosing `group`:
+
+```elm
+group (flatAlt (string "(") (string "( "))
+-- Wide: "("   (group fits, uses flat)
+-- Narrow: "( " (group breaks, uses broken)
+```
+
+**Real-world uses:**
+
+1. **Exposing list parens** (different spacing):
+```elm
+group (flatAlt
+    (char '(' |> a items |> a (char ')'))      -- flat: (Foo, Bar)
+    (string "( " |> a items |> a line |> a (char ')'))  -- broken: ( Foo\n, Bar\n)
+)
+```
+
+2. **Operator placement** (`<|` at end-of-line vs own line):
+```elm
+group (lhs |> a (flatAlt (string " <| ") (line |> a (string "<| "))) |> a rhs)
+-- Wide: "foo <| bar"
+-- Narrow: "foo\n<| bar"
+```
+
+3. **Trailing commas** (only in multi-line mode):
+```elm
+item |> a (ifBreak (char ','))  -- ifBreak = flatAlt empty doc
+```
+
+**Relationship to `Line`:** Conceptually, `Line hsep vsep` is a special case of `FlatAlt`:
+```elm
+line = FlatAlt (Text " ") (actualNewline)
+tightline = FlatAlt Empty (actualNewline)
+```
+
+The separate `Line` constructor exists for efficiency and because line breaks have special indentation behavior.
+
 ## Key Insight: `group` and the Greedy Algorithm
 
 `group doc` creates a `Union (flatten doc) doc`—it tries the flattened version first, falls back to broken if it doesn't fit.
 
 **How `flatten` works:**
 - `Line hsep _` → `Text hsep` (replaces line break with horizontal separator)
+- `FlatAlt flat _` → `flatten flat` (selects flat alternative)
 - `Union left _` → `flatten left` (always takes the flatter branch)
 - `Nesting fn` → `flatten (fn 0)` (assumes indent level 0)
 - `Column fn` → `flatten (fn 0)` (assumes column 0)
@@ -307,6 +364,7 @@ string "if (cond) {"
 Think of building a `Doc` as describing a flexible container:
 - `string` creates rigid content
 - `line` creates a breakable joint (space when flat, newline when broken)
+- `flatAlt` creates mode-dependent content (different structure when flat vs broken)
 - `nest` says "if you break here, indent the pieces"
 - `group` says "try to keep this together if possible"
 - `align` says "line up with where I am now"
