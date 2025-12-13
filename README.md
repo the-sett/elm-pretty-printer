@@ -17,6 +17,8 @@ output formats, for example HTML.
 
 A pretty printing library based on ['A Prettier Printer' by Philip Wadler](https://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf).
 
+The theory of this code is described in the [THEORY.md file](THEORY.md), which also describes the features that extends Wadlers work.
+
 This version follows Wadler's paper closely, but is actually ported from a Haskell
 implementation that is referred to as Wadler/Leijen. Leijen added Column and Nesting
 constructors in the document type, which make for easier and more flexible indentation.

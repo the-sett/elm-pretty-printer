@@ -55,7 +55,15 @@ import Basics.Extra exposing (flip)
 import Internals exposing (..)
 
 
-{-| The type of documents that can be pretty printed.
+{-| A document describes possible layouts for pretty printing. The type parameter
+`t` allows tagging text for syntax highlighting.
+
+Build documents with combinators like `string`, `line`, `nest`, then render with `pretty`:
+
+    pretty 40 (group (nest 4 (string "hello" |> a line |> a (string "world"))))
+    -- Fits on one line: "hello world"
+    -- If too wide: "hello\n    world"
+
 -}
 type alias Doc t =
     Internals.Doc t
@@ -65,14 +73,15 @@ type alias Doc t =
 -- Document constructors -------------------------------------------------------
 
 
-{-| Creates an empty document. Empties are discarded during pretty printing.
+{-| An empty document that produces no output.
 
-Note that the `join`, `lines`, `softlines` and `words` functions also filter
-out empties. So if a list of `Docs` are joined by spaces any that are empty will
-be dircarded and not result in a double space in the result. For this reason
-empty is not the same as `string ""`.
+Unlike `string ""`, empties are filtered out by `join`, `lines`, `words`, etc.
+This prevents double separators when some items are conditionally absent:
 
-    pretty 10 empty == ""
+    words [ string "a", empty, string "b" ] -- "a b", not "a  b"
+
+    -- Conditional content:
+    words [ string "hello", if showName then string name else empty ]
 
 -}
 empty : Doc t
@@ -80,36 +89,55 @@ empty =
     Empty
 
 
-{-| Appends two documents together.
+{-| Concatenates two documents. The first argument comes before the second.
+
+    append (string "hello") (string "world") -- "helloworld"
+
+Usually it's more convenient to use `a` for pipelines, or `join`/`words`/`lines`
+for lists.
+
 -}
 append : Doc t -> Doc t -> Doc t
 append doc1 doc2 =
     Concatenate doc1 doc2
 
 
-{-| Adds an indent of the given number of spaces to all line breakss in the document.
-The first line will not be indented, only subsequent nested lines will be.
+{-| Adds indentation to all line breaks inside a document. The first line is
+NOT indented—only lines after breaks.
+
+    string "{" |> a (nest 4 (line |> a (string "body"))) |> a line |> a (string "}")
+    -- "{\n    body\n}"
+
+Common mistake—nest around content without a line break inside:
+
+    nest 4 (string "no effect")  -- just "no effect", no indentation
+
+The line break must be INSIDE the nest for indentation to apply.
+
 -}
 nest : Int -> Doc t -> Doc t
 nest depth doc =
     Nest depth doc
 
 
-{-| Creates a document from a string.
+{-| Creates a document from a string. This is the primary way to add text content.
+
+    pretty 80 (string "hello") == "hello"
+
+    string "let" |> a space |> a (string "x = 1")  -- "let x = 1"
+
 -}
 string : String -> Doc t
 string val =
     Text val Nothing
 
 
-{-| Creates a document from a string and tags it.
+{-| Creates a tagged string for syntax highlighting. Use with `Pretty.Renderer`
+to produce HTML or other formatted output.
 
-Later on the tag can be used to change how the string is displayed. For example
-you might tag something as a `Keyword` then use a layout handler to show keywords
-in bold, and so on.
+    type Tag = Keyword | Literal
 
-This is intended as a way of tagging strings in a Doc for the purpose of syntax
-highlighting.
+    taggedString "let" Keyword |> a space |> a (taggedString "42" Literal)
 
 -}
 taggedString : String -> t -> Doc t
@@ -117,19 +145,27 @@ taggedString val tag =
     Text val (Just tag)
 
 
-{-| Creates a document from a character.
+{-| Creates a document from a single character.
+
+    char '(' |> a (string "x") |> a (char ')')  -- "(x)"
+
 -}
 char : Char -> Doc t
 char c =
     Text (String.fromChar c) Nothing
 
 
-{-| Creates a hard line break. This creates a new line, with subsequent text
-at the current indentation level.
+{-| A line break that becomes a space when flattened by `group`.
 
-Note that a line break can be undone, when it sits beneath a `group` operation.
-If this happens and the text after the line break is printed on the same line
-then the line break will be replaced by a space character.
+    -- Without group: always breaks
+    string "a" |> a line |> a (string "b")  -- "a\nb"
+
+    -- With group: breaks only if needed
+    group (string "a" |> a line |> a (string "b"))
+    -- Wide: "a b"    (line becomes space)
+    -- Narrow: "a\nb" (line breaks)
+
+Use `tightline` if you want no space when flattened.
 
 -}
 line : Doc t
@@ -137,27 +173,20 @@ line =
     Line " " ""
 
 
-{-| Creates a hard line break. This creates a new line, with subsequent text
-at the current indentation level.
+{-| A line break that becomes nothing when flattened by `group`.
 
-Note that a line break can be undone, when it sits beneath a `group` operation.
-If this happens and the text after the line break is printed on the same line
-then this kind of line break will be replaced by an empty string; text before
-the break will flow directly into text after with no space added between.
+Use this before closing delimiters to avoid unwanted spaces:
 
-This is sometimes useful where you wan an end delimiter such as '}', ']' or ')'
-to appear on a new line when the document is broken over multiple lines, but with
-no space before it when the document is rendered on a single line. For example:
+    -- Array formatting
+    group (
+        char '[' |> a tightline
+            |> a (string "items")
+            |> a tightline |> a (char ']')
+    )
+    -- Wide:   "[items]"  (no spaces)
+    -- Narrow: "[\nitems\n]"
 
-    long (function and args) -- Note the bracket has no space before it.
-
-    versus
-
-    long
-        (function
-            and
-            args
-        )
+Compare with `line` which would produce "[ items ]" when flat.
 
 -}
 tightline : Doc t
@@ -170,8 +199,19 @@ separator hsep vsep =
     Line hsep vsep
 
 
-{-| Tries to fit a document on a single line, replacing line breaks with single spaces
-where possible to achieve this.
+{-| Try to lay out a document on one line; if it doesn't fit, break it.
+
+This is the key combinator for flexible layouts. It creates a choice between
+the flattened version (line breaks become spaces) and the original.
+
+    items = string "one" |> a line |> a (string "two") |> a line |> a (string "three")
+
+    pretty 20 (group items) == "one two three"  -- fits
+    pretty 10 (group items) == "one\ntwo\nthree" -- doesn't fit, breaks
+
+Nested groups break outside-in: the outer group breaks first, inner groups
+may still fit on their lines.
+
 -}
 group : Doc t -> Doc t
 group doc =
@@ -196,14 +236,14 @@ nesting =
 -- Document helper functions ---------------------------------------------------
 
 
-{-| Short hand notation for append.
-Usefull when appending multiple parts together:
+{-| Flip of `append` for use in pipelines. Read as "and":
 
-    string "Hello"
+    string "if"
         |> a space
-        |> a "World"
-        |> a (char '!')
-        |> a line
+        |> a (string "x > 0")
+        |> a space
+        |> a (string "then")
+    -- "if x > 0 then"
 
 -}
 a : Doc t -> Doc t -> Doc t
@@ -211,10 +251,11 @@ a =
     flip append
 
 
-{-| Places a document inside left and right book ends.
+{-| Wraps a document with left and right delimiters.
 
-    pretty 100 (surround (char '\') (char '/') string "hello")
-      == "\hello/"
+    surround (string "<<") (string ">>") (string "content")  -- "<<content>>"
+
+See also `parens`, `braces`, `brackets` for common cases.
 
 -}
 surround : Doc t -> Doc t -> Doc t -> Doc t
@@ -222,19 +263,28 @@ surround left right doc =
     append (append left doc) right
 
 
-{-| Creates a line break that will render to a single space if the documents it
-separates can be fitted onto one line, or a line break otherwise.
+{-| A line break that tries to be a space. Equivalent to `group line`.
+
+Unlike `line` inside a `group`, each `softline` makes its own independent
+break decision:
+
+    string "a" |> a softline |> a (string "b") |> a softline |> a (string "c")
+    -- Might render as: "a b\nc" if "a b" fits but "a b c" doesn't
+
 -}
 softline : Doc t
 softline =
     group line
 
 
-{-| Concatenates a list of documents together interspersed with a separator document.
+{-| Joins documents with a separator between each pair. Empty documents are
+filtered out to prevent double separators.
 
-Any `empty` docs in the list are dropped, so that multiple separators will not be
-placed together with nothing in between them. If this behaviour is intended use
-`string ""` instead of `empty`.
+    join (string ", ") [ string "a", string "b", string "c" ]  -- "a, b, c"
+
+    join (string ", ") [ string "a", empty, string "c" ]  -- "a, c" (not "a, , c")
+
+See also `words` (join with space), `lines` (join with line), `separators`.
 
 -}
 join : Doc t -> List (Doc t) -> Doc t
@@ -262,28 +312,15 @@ join sep docs =
             append d spersed
 
 
-{-| Concatenate a list of documents together interspersed with lines.
-Very convenient when laying out lines after another:
+{-| Joins documents with `line` between each. Equivalent to `join line`.
 
-    lines
-      [ string "Heading"
-      , words [string "First", string "paragraph"]
-      ...
-      ]
+    lines [ string "one", string "two", string "three" ]
+    -- "one\ntwo\nthree"
 
-    ==
+Wrap in `group` for flexible breaking:
 
-    string "Heading"
-      |> a line
-      |> a (string "First")
-      |> a space
-      |> a (string "paragraph")
-      ...
-
-Any empty docs in the list are dropped, so multiple lines will not be inserted
-around any empties.
-
-See also `words`.
+    group (lines [ string "a", string "b" ])
+    -- Wide: "a b"  |  Narrow: "a\nb"
 
 -}
 lines : List (Doc t) -> Doc t
@@ -291,53 +328,16 @@ lines =
     join line
 
 
-{-| Concatenates a list of documents together interspersed with lines and
-separator strings. This is convenient when laying out lines where each line
-begins with a separator, for example if commas are to go on the start rather
-than the ends of lines:
+{-| Joins documents with a separator that appears both when flat and when broken.
+Useful for leading-comma or leading-pipe style:
 
-    separators ", "
-      [ string "Heading"
-      , words [string "First", string "paragraph"]
-      ...
-      ]
+    separators ", " [ string "a", string "b", string "c" ] |> group
+    -- Wide:   "a, b, c"
+    -- Narrow: "a\n, b\n, c"
 
-    ==
-
-    string "Heading"
-      |> a line
-      |> a (string ", ")
-      |> a (string "First")
-      |> a space
-      |> a (string "paragraph")
-      ...
-
-The separator string is kept with the line break. If lines built in this way
-are placed into a `group`, then the inline version of the group will include
-the separators. The broken version of the group will have the separators after
-any indentation but otherwise at the start of each line.
-
-    separators ", "
-      [ string "One"
-      , string "Two"
-      ...
-      ]
-      |> group
-
-Can render as:
-
-      One, Two, ...
-
-Or
-
-      One
-      , Two
-      , ...
-
-Any empty docs in the list are dropped, so multiple lines will not be inserted
-around any empties.
-
-See also `words`.
+    separators "| " [ string "A", string "B" ] |> group
+    -- Wide:   "A| B"
+    -- Narrow: "A\n| B"
 
 -}
 separators : String -> List (Doc t) -> Doc t
@@ -345,10 +345,13 @@ separators sep =
     Line sep sep |> join
 
 
-{-| Like `lines` but uses `softline` instead.
+{-| Joins documents with `softline` (each break decides independently).
 
-Any empty docs in the list are dropped, so multiple lines will not be inserted
-around any empties.
+    softlines [ string "one", string "two", string "three" ]
+    -- Each softline independently becomes space or newline based on fit
+
+Unlike `group (lines [...])` where all breaks happen together, here each
+break point makes its own decision.
 
 -}
 softlines : List (Doc t) -> Doc t
@@ -356,13 +359,11 @@ softlines =
     join softline
 
 
-{-| Concatenate a list of documents together interspersed with spaces.
-Very convenient when laying out words after another.
+{-| Joins documents with spaces. Equivalent to `join space`.
 
-See also `lines`.
+    words [ string "hello", string "world" ]  -- "hello world"
 
-Any empty docs in the list are dropped, so multiple spaces will not be inserted
-around any empties.
+Empty docs are filtered out, preventing double spaces.
 
 -}
 words : List (Doc t) -> Doc t
@@ -370,9 +371,14 @@ words =
     join space
 
 
-{-| Fold a list of documents from left to right using a given function.
+{-| Left fold over a list, starting from `empty`. Useful for custom joining:
 
-    fold f == List.foldl f empty
+    -- Join with " -> " between items
+    fold (\item acc ->
+        if acc == empty then string item
+        else acc |> a (string " -> ") |> a (string item)
+    ) [ "a", "b", "c" ]
+    -- "a -> b -> c"
 
 -}
 fold : (a -> Doc t -> Doc t) -> List a -> Doc t
@@ -380,36 +386,55 @@ fold f =
     List.foldl f empty
 
 
-{-| Creates a document consisting of a single space.
+{-| A single space character. Equivalent to `char ' '`.
+
+    string "hello" |> a space |> a (string "world")  -- "hello world"
+
 -}
 space : Doc t
 space =
     char ' '
 
 
-{-| Wraps a document in parnethesese
+{-| Wraps a document in parentheses.
+
+    parens (string "x + y")  -- "(x + y)"
+
 -}
 parens : Doc t -> Doc t
 parens doc =
     surround (char '(') (char ')') doc
 
 
-{-| Wraps a document in braces.
+{-| Wraps a document in curly braces.
+
+    braces (string "x: 1")  -- "{x: 1}"
+
 -}
 braces : Doc t -> Doc t
 braces doc =
     surround (char '{') (char '}') doc
 
 
-{-| Wraps a document in brackets.
+{-| Wraps a document in square brackets.
+
+    brackets (string "1, 2, 3")  -- "[1, 2, 3]"
+
 -}
 brackets : Doc t -> Doc t
 brackets =
     surround (char '[') (char ']')
 
 
-{-| Adds an indent of the current column position to all line breaks in the document.
-The first line will not be indented, only subsequent nested lines will be.
+{-| Aligns subsequent lines to the current column position. Unlike `nest` which
+adds a fixed indent, `align` indents relative to where you are now.
+
+    string "let " |> a (align (lines [ string "x = 1", string "y = 2" ]))
+    -- "let x = 1\n    y = 2"
+    --     ^--- aligned to column 4 (after "let ")
+
+Useful for hanging indentation that adapts to context.
+
 -}
 align : Doc t -> Doc t
 align doc =
@@ -420,16 +445,25 @@ align doc =
         )
 
 
-{-| Adds an indent of the current column position to all line breaks in the document and
-a further indent of the specified number of columns.
-The first line will not be indented, only subsequent nested lines will be.
+{-| Combines `align` with additional nesting. Equivalent to `align (nest n doc)`.
+
+    string "fn(" |> a (hang 2 (lines [ string "arg1", string "arg2" ])) |> a (string ")")
+    -- "fn(arg1\n     arg2)"
+    --    ^--- aligned to column 3, plus 2 more = column 5
+
 -}
 hang : Int -> Doc t -> Doc t
 hang spaces doc =
     align (nest spaces doc)
 
 
-{-| Indents a whole document by a given number of spaces.
+{-| Indents the first line AND all subsequent lines by the given amount.
+
+    indent 4 (lines [ string "one", string "two" ])
+    -- "    one\n    two"
+
+Compare with `nest` which only affects lines after breaks, not the first line.
+
 -}
 indent : Int -> Doc t -> Doc t
 indent spaces doc =
@@ -437,17 +471,28 @@ indent spaces doc =
         |> hang spaces
 
 
-{-| Set the tag of every string in the document.
+{-| Tags all strings in a document for syntax highlighting.
+
+    type Tag = Error
+
+    setTag Error (words [ string "undefined", string "variable" ])
+    -- Both strings will be tagged as Error
+
 -}
 setTag : t -> Doc t -> Doc t
 setTag tag =
     updateTag (\_ _ -> Just tag)
 
 
-{-| Conditionally update the tag of every string in the document.
+{-| Conditionally update tags based on string content and current tag.
 
-The update function is called with the string and its current tag and should
-return a new tag for the string or `Nothing` to remove the current tag.
+    -- Tag numbers as literals
+    updateTag (\s _ ->
+        if String.all Char.isDigit s then Just Literal else Nothing
+    ) doc
+
+    -- Remove all tags
+    updateTag (\_ _ -> Nothing) doc
 
 -}
 updateTag : (String -> Maybe t -> Maybe t) -> Doc t -> Doc t
@@ -459,8 +504,16 @@ updateTag =
 -- Pretty printing -------------------------------------------------------------
 
 
-{-| Pretty prints a document trying to fit it as best as possible to the specified
-column width of the page.
+{-| Renders a document to a string, fitting it within the given column width.
+
+The algorithm makes greedy left-to-right decisions: when a `group` fits on the
+remaining line, it stays flat; otherwise it breaks.
+
+    doc = group (string "aaa" |> a line |> a (string "bbb"))
+
+    pretty 10 doc == "aaa bbb"   -- fits in 10 columns
+    pretty 5 doc  == "aaa\nbbb"  -- too wide, breaks
+
 -}
 pretty : Int -> Doc t -> String
 pretty w doc =
