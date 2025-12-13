@@ -4,9 +4,17 @@
 
 **Status**
 
+- 13-Dec-2025 - Published as version 3.2.0
+
+   Added new "ribbon width" feature and prettyWithRibbon functions. This allows you to keep code compact
+   and more uniform looking, whether near the start of the line or the end.
+
 - 13-Dec-2025 - Published as version 3.1.3
+
    3.1.0 Added Pretty.Renderer and tagging for syntax highlighing.
+   
    3.1.x Fixed a few small bugs particularly softline blowing up the stack.
+   
    3.1.3 Added lots of tests and improved the documentation with examples.
    
 - 06-Oct-2020 - Published as version 3.0.0
