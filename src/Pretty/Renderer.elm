@@ -1,15 +1,11 @@
-module Pretty.Renderer exposing (pretty, Renderer)
+module Pretty.Renderer exposing (pretty, prettyWithRibbon, Renderer)
 
-{-| Pretty.Renderer lets you specify custom rendering functions to modify the
-output of the pretty printer as it is layed out. You do not need to use this
-module for the default monochrome text only rendering which can be achieved
-with `Pretty.pretty`.
+{-| Custom rendering for syntax highlighting or structured output (e.g., HTML).
 
-If you have a tagged `Doc` model, you can use the tags to do syntax highlighting
-with a custom `Renderer`. You can also turn the output into other structured
-forms such as HTML.
+Use `Pretty.pretty` for plain text. Use this module when you need to handle
+tagged strings differently or produce non-string output.
 
-@docs pretty, Renderer
+@docs pretty, prettyWithRibbon, Renderer
 
 -}
 
@@ -20,10 +16,9 @@ import Internals exposing (Doc(..), Normal(..))
 -- Pretty printing -------------------------------------------------------------
 
 
-{-| Pretty prints a document trying to fit it as best as possible to the specified
-column width of the page.
+{-| Renders a document using a custom `Renderer`.
 
-A custom `Renderer` must be specified to handle the different parts of the output.
+    pretty 80 htmlRenderer doc
 
 -}
 pretty : Int -> Renderer t a b -> Doc t -> b
@@ -31,25 +26,39 @@ pretty w handler doc =
     layout handler (Internals.best w 0 doc)
 
 
-{-| A custom `Renderer`.
+{-| Pretty prints with both page width and ribbon width constraints.
 
-This works a bit like a `foldl` operation. Note that the text being rendered
-is folded left to right, which means if you accumulate intermediate results into
-`List`s, you will need to reverse them.
+The ribbon width limits non-indentation characters per line. At indentation
+level `i`, the effective width is `min(pageWidth, i + ribbonWidth)`.
 
-  - The `init` value defines the initial state of an accumulator that is passed
-    over the entire rendering.
+-}
+prettyWithRibbon : { pageWidth : Int, ribbonWidth : Int } -> Renderer t a b -> Doc t -> b
+prettyWithRibbon { pageWidth, ribbonWidth } handler doc =
+    let
+        effectiveRibbon =
+            min ribbonWidth pageWidth
+    in
+    layout handler (Internals.bestWithRibbon pageWidth effectiveRibbon 0 doc)
 
-  - Tagged and untagged string from the `Doc` are passed through the `tagged`
-    and `untagged` functions.
 
-  - When the end of a line is reached, `untagged` is invoked to update the
-    accumulator. Note that you must manually add `\n` newline character here if
-    you need one. You may not be using newlines for an HTML rendering.
+{-| Accumulator-based renderer, similar to `foldl`.
 
-  - The `outer` function is invoked on the complete accumulator, and provides an
-    opportunity to complete the layout, for example by adding outer HTML tags
-    around in, and so on.
+  - `init`: Starting accumulator value
+  - `tagged`: Handle tagged text (for syntax highlighting)
+  - `untagged`: Handle untagged text and indentation
+  - `newline`: Handle line breaks (add `\n` here if needed)
+  - `outer`: Transform final accumulator to output type
+
+Text is processed left-to-right; reverse lists if accumulating in order.
+
+    htmlRenderer : Renderer Tag (List (Html msg)) (Html msg)
+    htmlRenderer =
+        { init = []
+        , tagged = \tag text acc -> styledSpan tag text :: acc
+        , untagged = \text acc -> Html.text text :: acc
+        , newline = \acc -> Html.br [] [] :: acc
+        , outer = \acc -> Html.pre [] (List.reverse acc)
+        }
 
 -}
 type alias Renderer t a b =
