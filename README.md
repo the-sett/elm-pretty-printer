@@ -4,6 +4,12 @@
 
 **Status**
 
+- 13-Dec-2025 - Published as version 3.3.0
+
+   Added new "flatAlt" feature. This allows you to define different doc layouts for flat and broken
+   scenarios. When placed inside a group, these respect the decision of the group itself, allowing
+   more precise control of layouts. This is needed to replicate how elm-format works.
+   
 - 13-Dec-2025 - Published as version 3.2.0
 
    Added new "ribbon width" feature and prettyWithRibbon functions. This allows you to keep code compact
