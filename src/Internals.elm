@@ -7,6 +7,7 @@ type Doc t
     | Nest Int (Doc t)
     | Text String (Maybe t)
     | Line String String
+    | FlatAlt (Doc t) (Doc t)
     | Union (Doc t) (Doc t)
     | Nesting (Int -> Doc t)
     | Column (Int -> Doc t)
@@ -45,6 +46,9 @@ updateTag updateFn doc =
 
         Union doc1 doc2 ->
             Union (updateTag updateFn doc1) (updateTag updateFn doc2)
+
+        FlatAlt flatDoc brokenDoc ->
+            FlatAlt (updateTag updateFn flatDoc) (updateTag updateFn brokenDoc)
 
         Nesting fn ->
             Nesting (\i -> updateTag updateFn (fn i))
@@ -88,6 +92,9 @@ flatten doc =
 
         Union doc1 _ ->
             flatten doc1
+
+        FlatAlt flatDoc _ ->
+            flatten flatDoc
 
         Line hsep _ ->
             Text hsep Nothing
@@ -184,6 +191,9 @@ be w r k docs =
                 k
                 (be w r k (( i, doc1 ) :: ds))
                 (\_ -> be w r k (( i, doc2 ) :: ds))
+
+        ( i, FlatAlt _ brokenDoc ) :: ds ->
+            be w r k (( i, brokenDoc ) :: ds)
 
         ( i, Nesting fn ) :: ds ->
             be w r k (( i, fn i ) :: ds)

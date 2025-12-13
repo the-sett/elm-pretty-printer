@@ -1,11 +1,14 @@
 module Pretty.Renderer exposing (pretty, prettyWithRibbon, Renderer)
 
-{-| Custom rendering for syntax highlighting or structured output (e.g., HTML).
+{-| Custom rendering for syntax highlighting or structured output.
 
-Use `Pretty.pretty` for plain text. Use this module when you need to handle
-tagged strings differently or produce non-string output.
+Use `Pretty.pretty` for plain text. Use this module to:
 
-@docs pretty, prettyWithRibbon, Renderer
+  - Render to HTML with syntax highlighting
+  - Handle tagged strings differently based on their tags
+  - Produce any accumulator-based output format
+
+@docs Renderer, pretty, prettyWithRibbon
 
 -}
 
