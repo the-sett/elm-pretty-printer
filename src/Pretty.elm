@@ -51,7 +51,6 @@ lay it out to fit a page width using the `pretty` function.
 
 -}
 
-import Basics.Extra exposing (flip)
 import Internals exposing (..)
 
 
@@ -207,8 +206,8 @@ Usefull when appending multiple parts together:
 
 -}
 a : Doc t -> Doc t -> Doc t
-a =
-    flip append
+a l r =
+    append r l
 
 
 {-| Places a document inside left and right book ends.
