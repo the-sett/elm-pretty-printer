@@ -51,7 +51,6 @@ then render them to fit a page width.
 
 -}
 
-import Basics.Extra exposing (flip)
 import Internals exposing (..)
 
 
@@ -246,8 +245,8 @@ nesting =
 
 -}
 a : Doc t -> Doc t -> Doc t
-a =
-    flip append
+a l r =
+    append r l
 
 
 {-| Wraps a document with left and right delimiters.
