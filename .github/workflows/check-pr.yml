@@ -1,0 +1,37 @@
+name: Check code
+
+on:
+    pull_request:
+jobs:
+    # Review:
+    #     name: Check code with elm-format and elm-review
+    #     runs-on: ubuntu-latest
+    #     permissions:
+    #         contents: read
+    #         checks: write
+    #     steps:
+    #         - name: Check out repository code
+    #           uses: actions/checkout@v4
+
+    #         # Build, to fetch elm packages, unless we restored them from cache.
+    #         - name: Build project
+    #           if: steps.cache-elm.outputs.cache-hit != 'true'
+    #           run: npx --yes elm make --docs=docs.json
+
+    #         - name: Format
+    #           run: elm-format --validate src tests
+
+    #         - name: Elm-review check
+    #           run: npx --yes elm-review
+    Test:
+        name: Compile the code and run tests
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            pull-requests: write
+        steps:
+            - name: Check out repository code
+              uses: actions/checkout@v4
+
+            - name: Tests (elm-test)
+              run: npx --yes elm-test-rs
